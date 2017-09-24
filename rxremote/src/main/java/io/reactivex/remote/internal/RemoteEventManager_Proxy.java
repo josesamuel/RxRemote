@@ -36,7 +36,6 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
             data.writeInterfaceToken(DESCRIPTOR);
             data.writeStrongBinder(new RemoteEventListener_Stub(listener));
             mRemote.transact(TRANSACTION_subscribe_0, data, reply, 0);
-            reply.readException();
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {
@@ -52,7 +51,6 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
         try {
             data.writeInterfaceToken(DESCRIPTOR);
             mRemote.transact(TRANSACTION_unsubscribe_1, data, reply, 0);
-            reply.readException();
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {

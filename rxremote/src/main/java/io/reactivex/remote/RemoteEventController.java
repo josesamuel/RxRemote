@@ -26,7 +26,7 @@ import io.reactivex.remote.internal.RemoteEventManager;
 public class RemoteEventController<T> {
 
     private static final String TAG = "RemoteEventController";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private boolean completed;
     private T lastEvent;
     private RemoteDataType dataType = RemoteDataType.UnKnown;

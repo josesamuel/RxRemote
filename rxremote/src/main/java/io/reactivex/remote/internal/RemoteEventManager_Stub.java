@@ -50,13 +50,11 @@ public class RemoteEventManager_Stub extends Binder {
                     RemoteEventListener arg_stb_0;
                     arg_stb_0 = new RemoteEventListener_Proxy(data.readStrongBinder());
                     serviceImpl.subscribe(arg_stb_0);
-                    reply.writeNoException();
                     return true;
                 }
                 case TRANSACTION_unsubscribe_1: {
                     data.enforceInterface(DESCRIPTOR);
                     serviceImpl.unsubscribe();
-                    reply.writeNoException();
                     return true;
                 }
             }

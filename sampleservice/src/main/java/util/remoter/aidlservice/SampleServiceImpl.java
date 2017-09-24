@@ -12,6 +12,14 @@ public class SampleServiceImpl implements ISampleService {
 
 
     private static final String TAG = "SampleService";
+    RemoteEventController<Integer> intDataEventController = new RemoteEventController<>();
+
+    SampleServiceImpl() {
+        //to test clients will always receive the last data
+        intDataEventController.sendEvent(7);
+        intDataEventController.sendEvent(9);
+        intDataEventController.sendCompleted();
+    }
 
     @Override
     public RemoteObservable<FooParcelable> getFooObservable() {
@@ -98,41 +106,7 @@ public class SampleServiceImpl implements ISampleService {
 
     @Override
     public RemoteObservable<Integer> getIntbservable() {
-        return new RemoteObservable<>(new RemoteEventController<Integer>() {
-            boolean stopped = false;
-            int counter = 0;
-            Thread eventThread;
-
-            @Override
-            public void onSubscribed() {
-                if (!stopped) {
-                    eventThread = new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            while (!stopped) {
-                                try {
-                                    Thread.sleep(1000);
-                                    if (!stopped) {
-                                        sendEvent(counter);
-                                        counter++;
-                                    }
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    });
-                    eventThread.start();
-                }
-            }
-
-            @Override
-            public void onUnSubscribed() {
-                stopped = true;
-                eventThread.interrupt();
-                sendCompleted();
-            }
-        });
+        return new RemoteObservable<>(intDataEventController);
     }
 
     @Override

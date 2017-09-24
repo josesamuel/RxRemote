@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.remote.RemoteObservable;
+import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
@@ -231,22 +232,35 @@ public class RemoteObservableTest {
 
     }
 
+
     @Test
     public void testIntObservable() throws Exception {
-        final RemoteObservable<Integer> fooObservable = sampleService.getIntbservable();
+        RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntbservable();
+        Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
+        intObservableTest(integerObservable);
+        integerObservable = integerRemoteObservable.getObservable();
+        intObservableTest(integerObservable);
+
+        integerRemoteObservable = sampleService.getIntbservable();
+        integerObservable = integerRemoteObservable.getObservable();
+        intObservableTest(integerObservable);
+        integerObservable = integerRemoteObservable.getObservable();
+        intObservableTest(integerObservable);
+    }
+
+    public void intObservableTest(Observable<Integer> observable) throws Exception {
         expectingClose = false;
-        Assert.assertNotNull(fooObservable);
         eventsReceived = 0;
-        Subscription subscription = fooObservable.getObservable().subscribe(new Action1<Integer>() {
-            int counter = 0;
+        Subscription subscription = observable.subscribe(new Action1<Integer>() {
+            int expected = 9;
 
             @Override
             public void call(Integer data) {
+                Log.v(TAG, "Int data " + data.intValue());
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
-                Assert.assertEquals(counter, data.intValue());
-                counter++;
-
+                Assert.assertEquals(expected, data.intValue());
+                expectingClose = true;
             }
         }, new Action1<Throwable>() {
             @Override
@@ -256,13 +270,15 @@ public class RemoteObservableTest {
         }, new Action0() {
             @Override
             public void call() {
-                Assert.fail("Not expected");
+                Log.v(TAG, "Int data onComplete");
+                Assert.assertTrue(expectingClose);
+                expectingClose = false;
             }
         });
 
-        Thread.sleep(5500);
-        Assert.assertTrue(eventsReceived > 3);
-        expectingClose = true;
+        Thread.sleep(500);
+        Assert.assertEquals(1, eventsReceived);
+        Assert.assertFalse(expectingClose);
         subscription.unsubscribe();
     }
 

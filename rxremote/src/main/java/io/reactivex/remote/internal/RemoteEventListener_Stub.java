@@ -57,13 +57,11 @@ public class RemoteEventListener_Stub extends Binder {
                         arg_stb_0 = null;
                     }
                     serviceImpl.onRemoteEvent(arg_stb_0);
-                    reply.writeNoException();
                     return true;
                 }
                 case TRANSACTION_onCompleted_1: {
                     data.enforceInterface(DESCRIPTOR);
                     serviceImpl.onCompleted();
-                    reply.writeNoException();
                     return true;
                 }
             }

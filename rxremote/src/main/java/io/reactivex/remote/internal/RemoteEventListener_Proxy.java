@@ -44,7 +44,6 @@ public class RemoteEventListener_Proxy implements RemoteEventListener {
                 data.writeInt(0);
             }
             mRemote.transact(TRANSACTION_onRemoteEvent_0, data, reply, 0);
-            reply.readException();
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {
@@ -60,7 +59,6 @@ public class RemoteEventListener_Proxy implements RemoteEventListener {
         try {
             data.writeInterfaceToken(DESCRIPTOR);
             mRemote.transact(TRANSACTION_onCompleted_1, data, reply, 0);
-            reply.readException();
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {

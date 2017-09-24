@@ -66,7 +66,7 @@ Gradle dependency
 
 ```groovy
 dependencies {
-    implementation 'com.josesamuel:rxremote:1.0.0'
+    implementation 'com.josesamuel:rxremote:1.0.1'
 }
 ```
 

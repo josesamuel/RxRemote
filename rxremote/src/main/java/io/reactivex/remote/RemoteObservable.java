@@ -39,7 +39,7 @@ public class RemoteObservable<T> implements Parcelable {
         }
     };
     private static final String TAG = "RemoteObservable";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private IBinder remoteEventBinder;
 
@@ -77,7 +77,7 @@ public class RemoteObservable<T> implements Parcelable {
     public Observable<T> getObservable() {
         final RemoteEventManager remoteEventManager = new RemoteEventManager_Proxy(remoteEventBinder);
         final PublishSubject<T> publishSubject = PublishSubject.create();
-        return publishSubject.doOnSubscribe(new Action0() {
+        return publishSubject.mergeWith(Observable.<T>empty().doOnCompleted(new Action0() {
             @Override
             public void call() {
                 try {
@@ -100,17 +100,19 @@ public class RemoteObservable<T> implements Parcelable {
 
                         @Override
                         public void onCompleted() {
-                            if (DEBUG) {
-                                Log.v(TAG, "onCompleted ");
+                            synchronized (remoteEventManager) {
+                                if (DEBUG) {
+                                    Log.v(TAG, "onCompleted ");
+                                }
+                                publishSubject.onCompleted();
                             }
-                            publishSubject.onCompleted();
                         }
                     });
                 } catch (Exception ex) {
                     publishSubject.onCompleted();
                 }
             }
-        }).doOnUnsubscribe(new Action0() {
+        })).doOnUnsubscribe(new Action0() {
             @Override
             public void call() {
                 try {
@@ -123,6 +125,7 @@ public class RemoteObservable<T> implements Parcelable {
                 }
             }
         }).asObservable();
+
     }
 
     /**
