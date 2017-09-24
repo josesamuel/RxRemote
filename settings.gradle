@@ -1,0 +1,4 @@
+include  ':rxremote',  ':sampleclient', ':sampleservice'
+
+
+rootProject.name = 'rxremote-parent'
