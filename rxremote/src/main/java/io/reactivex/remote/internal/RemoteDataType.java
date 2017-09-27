@@ -14,5 +14,6 @@ public enum RemoteDataType {
     Byte,
     Char,
     Short,
+    Boolean,
     UnKnown;
 }

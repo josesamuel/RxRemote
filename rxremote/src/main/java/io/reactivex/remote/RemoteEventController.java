@@ -20,7 +20,7 @@ import io.reactivex.remote.internal.RemoteEventManager;
  * the data stream is complete
  *
  * @param <T> Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
- *            {@link Float}, {@link Double}, {@link Parcelable},
+ *            {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
  *            or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
  */
 public class RemoteEventController<T> {
@@ -110,6 +110,9 @@ public class RemoteEventController<T> {
         if (data instanceof Character) {
             return RemoteDataType.Char;
         }
+        if (data instanceof Boolean) {
+            return RemoteDataType.Boolean;
+        }
         if (data instanceof Parcelable) {
             return RemoteDataType.Parcelable;
         } else {
@@ -154,6 +157,7 @@ public class RemoteEventController<T> {
                 }
                 if (completed) {
                     sendOnCompleted();
+                    this.listener = null;
                 }
             }
         }
@@ -210,6 +214,10 @@ public class RemoteEventController<T> {
                         case Long:
                             remoteData.putLong(RemoteEventManager.REMOTE_DATA_KEY, (Long) data);
                             break;
+                        case Boolean:
+                            remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY, ((Boolean) data).booleanValue() ? 1 : 0);
+                            break;
+
                     }
                     listener.onRemoteEvent(remoteData);
                 }

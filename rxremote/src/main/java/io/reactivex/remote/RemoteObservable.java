@@ -22,7 +22,7 @@ import rx.subjects.PublishSubject;
  * and then get an {@link Observable} from this class at the client side.
  *
  * @param <T> Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
- *            {@link Float}, {@link Double}, {@link Parcelable},
+ *            {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
  *            or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
  */
 public class RemoteObservable<T> implements Parcelable {
@@ -151,6 +151,8 @@ public class RemoteObservable<T> implements Parcelable {
                 return (T) (Short) remoteData.getShort(RemoteEventManager.REMOTE_DATA_KEY);
             case String:
                 return (T) remoteData.getString(RemoteEventManager.REMOTE_DATA_KEY);
+            case Boolean:
+                return (T) (Boolean) (remoteData.getInt(RemoteEventManager.REMOTE_DATA_KEY) == 1);
             case Parceler:
                 return getParcelerData(remoteData);
         }
@@ -163,7 +165,7 @@ public class RemoteObservable<T> implements Parcelable {
     private T getParcelerData(Bundle remoteData) {
         try {
             Object parcelerObject = remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY);
-            return (T) parcelerObject.getClass().getMethod("getParcel", null).invoke(parcelerObject);
+            return (T) parcelerObject.getClass().getMethod("getParcel", (Class) null).invoke(parcelerObject);
         } catch (Exception exception) {
         }
         return null;
