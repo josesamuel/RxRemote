@@ -1,9 +1,9 @@
 Change Log
 ==========
 
-Version 1.0.2 *(2017-09-26)*
+Version 1.0.3 *(2017-09-26)*
 ----------------------------
-More type support
+More type support, faster updates
 
 
 Version 1.0.1 *(2017-09-24)*

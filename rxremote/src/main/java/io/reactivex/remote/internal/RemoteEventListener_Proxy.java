@@ -43,7 +43,7 @@ public class RemoteEventListener_Proxy implements RemoteEventListener {
             } else {
                 data.writeInt(0);
             }
-            mRemote.transact(TRANSACTION_onRemoteEvent_0, data, reply, 0);
+            mRemote.transact(TRANSACTION_onRemoteEvent_0, data, reply, android.os.IBinder.FLAG_ONEWAY);
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {
@@ -58,7 +58,7 @@ public class RemoteEventListener_Proxy implements RemoteEventListener {
         android.os.Parcel reply = android.os.Parcel.obtain();
         try {
             data.writeInterfaceToken(DESCRIPTOR);
-            mRemote.transact(TRANSACTION_onCompleted_1, data, reply, 0);
+            mRemote.transact(TRANSACTION_onCompleted_1, data, reply, android.os.IBinder.FLAG_ONEWAY);
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {

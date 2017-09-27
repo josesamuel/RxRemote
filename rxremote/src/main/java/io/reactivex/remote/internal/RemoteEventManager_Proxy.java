@@ -35,7 +35,7 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
         try {
             data.writeInterfaceToken(DESCRIPTOR);
             data.writeStrongBinder(new RemoteEventListener_Stub(listener));
-            mRemote.transact(TRANSACTION_subscribe_0, data, reply, 0);
+            mRemote.transact(TRANSACTION_subscribe_0, data, reply, android.os.IBinder.FLAG_ONEWAY);
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {
@@ -50,7 +50,7 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
         android.os.Parcel reply = android.os.Parcel.obtain();
         try {
             data.writeInterfaceToken(DESCRIPTOR);
-            mRemote.transact(TRANSACTION_unsubscribe_1, data, reply, 0);
+            mRemote.transact(TRANSACTION_unsubscribe_1, data, reply, android.os.IBinder.FLAG_ONEWAY);
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {

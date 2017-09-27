@@ -66,7 +66,8 @@ Gradle dependency
 
 ```groovy
 dependencies {
-    implementation 'com.josesamuel:rxremote:1.0.1'
+	//Replace "implementation" with "compile" on pre AndroidStudio 3
+    implementation 'com.josesamuel:rxremote:1.0.3'
 }
 ```
 

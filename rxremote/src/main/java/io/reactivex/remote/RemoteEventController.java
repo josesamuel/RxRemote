@@ -157,7 +157,6 @@ public class RemoteEventController<T> {
                 }
                 if (completed) {
                     sendOnCompleted();
-                    this.listener = null;
                 }
             }
         }
@@ -238,6 +237,7 @@ public class RemoteEventController<T> {
 
                 if (this.listener != null) {
                     listener.onCompleted();
+                    this.listener = null;
                 }
             } catch (Exception ex) {
                 completed = true;
