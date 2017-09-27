@@ -3,16 +3,17 @@
 **RxRemote** extends the power of Rx Observables across android process. 
 
 **Example**
-(using [Remoter](https://bit.ly/Remoter) interface)
+
 
 ```java
 @Remoter
 public interface ISampleService {
-     //Define a remote method that returns a RemoteObservable<String> 
+     //Returns a RemoteObservable<String> 
      RemoteObservable<String> getRemoteObservable();
 }
 
 ```
+(Above example uses [Remoter](https://bit.ly/Remoter) interface instead of aidl, but it could be used with aidl too)
 
 **At server side**
 
