@@ -8,6 +8,8 @@ import android.os.Parcel;
 import android.os.RemoteException;
 
 /**
+ * @hide
+ *
  * Used internally
  * <p>
  * Wraps a {@link RemoteEventListener} implementation and expose it as a remote {@link IBinder}

@@ -11,7 +11,7 @@ import util.remoter.service.ISampleService;
 public class SampleServiceImpl implements ISampleService {
 
 
-    private static final String TAG = "SampleService";
+    private static final String TAG = "RemoteObservablesrc";
     RemoteEventController<Integer> intDataEventController = new RemoteEventController<>();
 
     SampleServiceImpl() {
@@ -31,7 +31,7 @@ public class SampleServiceImpl implements ISampleService {
 
             @Override
             public void onSubscribed() {
-                Log.v(TAG, "onSubscribed");
+                Log.v(TAG, "Foo onSubscribed");
                 if (!stopped) {
                     eventThread = new Thread(new Runnable() {
                         @Override
@@ -57,7 +57,7 @@ public class SampleServiceImpl implements ISampleService {
 
             @Override
             public void onUnSubscribed() {
-                Log.v(TAG, "onUnSubscribed");
+                Log.v(TAG, "foo onUnSubscribed");
                 stopped = true;
                 eventThread.interrupt();
                 sendCompleted();
@@ -74,6 +74,7 @@ public class SampleServiceImpl implements ISampleService {
 
             @Override
             public void onSubscribed() {
+                Log.v(TAG, "CD onSubscribed");
                 if (!stopped) {
                     eventThread = new Thread(new Runnable() {
                         @Override
@@ -82,7 +83,9 @@ public class SampleServiceImpl implements ISampleService {
                                 try {
                                     Thread.sleep(1000);
                                     if (!stopped) {
-                                        sendEvent(new CustomData(counter));
+                                        CustomData data = new CustomData(counter);
+                                        Log.v(TAG, "Sending " + data);
+                                        sendEvent(data);
                                         counter++;
                                     }
                                 } catch (InterruptedException e) {
@@ -97,6 +100,7 @@ public class SampleServiceImpl implements ISampleService {
 
             @Override
             public void onUnSubscribed() {
+                Log.v(TAG, "CD onUnSubscribed");
                 stopped = true;
                 eventThread.interrupt();
                 sendCompleted();

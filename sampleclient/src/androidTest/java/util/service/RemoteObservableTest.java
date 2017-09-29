@@ -100,11 +100,37 @@ public class RemoteObservableTest {
         expectingClose = false;
         eventsReceived = 0;
         Assert.assertNotNull(fooObservable);
-        Subscription subscription = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
+
+        Subscription subscription1 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
             int counter = 0;
 
             @Override
             public void call(FooParcelable fooParcelable) {
+                Log.v(TAG, "onNext sub1 " + fooParcelable.getIntValue());
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Assert.assertEquals(counter, fooParcelable.getIntValue());
+                counter++;
+
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.fail("Unexpected observable exception");
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Assert.fail("Not expected");
+            }
+        });
+
+        Subscription subscription2 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
+            int counter = 0;
+
+            @Override
+            public void call(FooParcelable fooParcelable) {
+                Log.v(TAG, "onNext sub2 " + fooParcelable.getIntValue());
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
                 Assert.assertEquals(counter, fooParcelable.getIntValue());
@@ -124,39 +150,12 @@ public class RemoteObservableTest {
         });
 
         Thread.sleep(5500);
-        Assert.assertTrue(eventsReceived > 3);
-        expectingClose = true;
-        subscription.unsubscribe();
-
+        Assert.assertTrue(eventsReceived > 6);
+        subscription1.unsubscribe();
+        Thread.sleep(5500);
+        Assert.assertTrue(eventsReceived > 9);
+        subscription2.unsubscribe();
         Thread.sleep(1000);
-
-        //this should receive the last event and the completed (matching server)
-        expectingClose = true;
-        eventsReceived = 0;
-        Assert.assertNotNull(fooObservable);
-        subscription = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
-            int counter = 4;
-
-            @Override
-            public void call(FooParcelable fooParcelable) {
-                Assert.assertEquals(counter, fooParcelable.getIntValue());
-            }
-        }, new Action1<Throwable>() {
-            @Override
-            public void call(Throwable throwable) {
-                Assert.fail("Unexpected observable exception");
-            }
-        }, new Action0() {
-            @Override
-            public void call() {
-                Assert.assertTrue(expectingClose);
-                expectingClose = false;
-            }
-        });
-
-        Thread.sleep(1000);
-        subscription.unsubscribe();
-        Assert.assertFalse(expectingClose);
     }
 
 
@@ -168,10 +167,11 @@ public class RemoteObservableTest {
 
     public void testParcel() throws Exception {
         final RemoteObservable<CustomData> fooObservable = sampleService.getCDObservable();
+        Log.v(TAG, "CS observable " + fooObservable);
         expectingClose = false;
         Assert.assertNotNull(fooObservable);
         eventsReceived = 0;
-        Subscription subscription = fooObservable.getObservable().subscribe(new Action1<CustomData>() {
+        Subscription subscription1 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
             int counter = 0;
 
             @Override
@@ -180,7 +180,7 @@ public class RemoteObservableTest {
                 eventsReceived++;
                 Assert.assertEquals(counter, fooParcelable.getData());
                 counter++;
-                Log.v(TAG, "Data 1st " + fooParcelable);
+                Log.v(TAG, "Data 1st " + fooParcelable.getData());
 
             }
         }, new Action1<Throwable>() {
@@ -195,23 +195,19 @@ public class RemoteObservableTest {
             }
         });
 
-        Thread.sleep(5500);
-        Assert.assertTrue(eventsReceived > 3);
-        expectingClose = true;
-        subscription.unsubscribe();
+        Log.v(TAG, "Sub1 created " + subscription1);
 
-        Thread.sleep(1000);
-
-        //this should receive the last event and the completed (matching server)
-        expectingClose = true;
-        eventsReceived = 0;
-        Assert.assertNotNull(fooObservable);
-        subscription = fooObservable.getObservable().subscribe(new Action1<CustomData>() {
-            int counter = 4;
+        Subscription subscription2 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
+            int counter = 0;
 
             @Override
             public void call(CustomData fooParcelable) {
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
                 Assert.assertEquals(counter, fooParcelable.getData());
+                counter++;
+                Log.v(TAG, "Data 2nd " + fooParcelable.getData());
+
             }
         }, new Action1<Throwable>() {
             @Override
@@ -221,15 +217,19 @@ public class RemoteObservableTest {
         }, new Action0() {
             @Override
             public void call() {
-                Log.v(TAG, "complete " + expectingClose);
-                Assert.assertTrue(expectingClose);
-                expectingClose = false;
+                Assert.fail("Not expected");
             }
         });
-        Thread.sleep(1000);
-        subscription.unsubscribe();
-        Assert.assertFalse(expectingClose);
 
+        Log.v(TAG, "Sub2 created " + subscription2);
+
+        Thread.sleep(5500);
+        Assert.assertTrue(eventsReceived > 6);
+        subscription1.unsubscribe();
+        Thread.sleep(5500);
+        Assert.assertTrue(eventsReceived > 9);
+        subscription2.unsubscribe();
+        Thread.sleep(1000);
     }
 
 
@@ -238,12 +238,8 @@ public class RemoteObservableTest {
         RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntbservable();
         Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
         intObservableTest(integerObservable);
-        integerObservable = integerRemoteObservable.getObservable();
-        intObservableTest(integerObservable);
 
         integerRemoteObservable = sampleService.getIntbservable();
-        integerObservable = integerRemoteObservable.getObservable();
-        intObservableTest(integerObservable);
         integerObservable = integerRemoteObservable.getObservable();
         intObservableTest(integerObservable);
     }
@@ -251,7 +247,7 @@ public class RemoteObservableTest {
     public void intObservableTest(Observable<Integer> observable) throws Exception {
         expectingClose = false;
         eventsReceived = 0;
-        Subscription subscription = observable.subscribe(new Action1<Integer>() {
+        Subscription subscription1 = observable.subscribe(new Action1<Integer>() {
             int expected = 9;
 
             @Override
@@ -272,32 +268,17 @@ public class RemoteObservableTest {
             public void call() {
                 Log.v(TAG, "Int data onComplete");
                 Assert.assertTrue(expectingClose);
-                expectingClose = false;
             }
         });
-
-        Thread.sleep(500);
+        Thread.sleep(3000);
         Assert.assertEquals(1, eventsReceived);
-        Assert.assertFalse(expectingClose);
-        subscription.unsubscribe();
-    }
 
-    @Test
-    public void testStringObservable() throws Exception {
-        final RemoteObservable<String> fooObservable = sampleService.getStringbservable();
-        expectingClose = false;
-        Assert.assertNotNull(fooObservable);
-        eventsReceived = 0;
-        Subscription subscription = fooObservable.getObservable().subscribe(new Action1<String>() {
-            int counter = 0;
+        Subscription subscription2 = observable.subscribe(new Action1<Integer>() {
+            int expected = 9;
 
             @Override
-            public void call(String data) {
-                Assert.assertFalse(expectingClose);
-                eventsReceived++;
-                Assert.assertEquals(String.valueOf(counter), data);
-                counter++;
-
+            public void call(Integer data) {
+                Assert.fail("Already closed");
             }
         }, new Action1<Throwable>() {
             @Override
@@ -307,15 +288,16 @@ public class RemoteObservableTest {
         }, new Action0() {
             @Override
             public void call() {
-                Assert.fail("Not expected");
+                expectingClose = false;
             }
         });
 
-        Thread.sleep(5500);
-        Assert.assertTrue(eventsReceived > 3);
-        expectingClose = true;
-        subscription.unsubscribe();
+
+        Assert.assertFalse(expectingClose);
+        subscription1.unsubscribe();
+        subscription2.unsubscribe();
     }
+
 
 }
 

@@ -1,6 +1,8 @@
 package io.reactivex.remote.internal;
 
 /**
+ * @hide
+ *
  * Used internally by service side to call client
  */
 public interface RemoteEventManager {

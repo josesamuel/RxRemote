@@ -57,7 +57,7 @@
  * To add Remoter to your project add these to its gradle <b>dependencies</b>:
  * <br/>
  * <br/>
- *  <b>implementation 'com.josesamuel:rxremote:1.0.3’</b>
+ *  <b>implementation 'com.josesamuel:rxremote:1.0.4’</b>
  * <br/><br/>
  * </p>
  * <br/>

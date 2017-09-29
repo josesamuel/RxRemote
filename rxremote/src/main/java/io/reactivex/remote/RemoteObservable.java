@@ -10,9 +10,8 @@ import io.reactivex.remote.internal.RemoteEventListener;
 import io.reactivex.remote.internal.RemoteEventManager;
 import io.reactivex.remote.internal.RemoteEventManager_Proxy;
 import io.reactivex.remote.internal.RemoteEventManager_Stub;
+import io.reactivex.remote.internal.RemoteSubject;
 import rx.Observable;
-import rx.functions.Action0;
-import rx.subjects.PublishSubject;
 
 /**
  * {@link Observable} across android remote services.
@@ -24,6 +23,7 @@ import rx.subjects.PublishSubject;
  * @param <T> Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
  *            {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
  *            or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
+ * @author js
  */
 public class RemoteObservable<T> implements Parcelable {
 
@@ -42,6 +42,7 @@ public class RemoteObservable<T> implements Parcelable {
     private static final boolean DEBUG = false;
 
     private IBinder remoteEventBinder;
+    private RemoteSubject<T> remoteSubject;
 
     //*************************************************************
 
@@ -75,17 +76,25 @@ public class RemoteObservable<T> implements Parcelable {
      * Returns an {@link Observable} which will receive the data send from the service side.
      */
     public Observable<T> getObservable() {
-        final RemoteEventManager remoteEventManager = new RemoteEventManager_Proxy(remoteEventBinder);
-        final PublishSubject<T> publishSubject = PublishSubject.create();
-        return publishSubject.mergeWith(Observable.<T>empty().doOnCompleted(new Action0() {
-            @Override
-            public void call() {
-                try {
+        return getRemoteSubject().asObservable();
+    }
+
+    /**
+     * Initializes {@link RemoteSubject} as needed and returns
+     */
+    private synchronized RemoteSubject<T> getRemoteSubject() {
+        if (remoteSubject == null) {
+            final RemoteEventManager remoteEventManager = new RemoteEventManager_Proxy(remoteEventBinder);
+            remoteSubject = new RemoteSubject<T>() {
+                RemoteEventListener remoteEventListener;
+
+                @Override
+                public void onFirstSubscribe() {
                     if (DEBUG) {
-                        Log.v(TAG, "onSubscribe ");
+                        Log.v(TAG, "onFirst subscribe ");
                     }
 
-                    remoteEventManager.subscribe(new RemoteEventListener() {
+                    remoteEventListener = new RemoteEventListener() {
                         @Override
                         public void onRemoteEvent(Bundle remoteData) {
                             remoteData.setClassLoader(this.getClass().getClassLoader());
@@ -94,8 +103,7 @@ public class RemoteObservable<T> implements Parcelable {
                             if (DEBUG) {
                                 Log.v(TAG, "onData " + data);
                             }
-
-                            publishSubject.onNext(data);
+                            remoteSubject.onNext(data);
                         }
 
                         @Override
@@ -104,34 +112,42 @@ public class RemoteObservable<T> implements Parcelable {
                                 if (DEBUG) {
                                     Log.v(TAG, "onCompleted ");
                                 }
-                                publishSubject.onCompleted();
+                                remoteSubject.onCompleted();
                             }
                         }
-                    });
-                } catch (Exception ex) {
-                    publishSubject.onCompleted();
-                }
-            }
-        })).doOnUnsubscribe(new Action0() {
-            @Override
-            public void call() {
-                try {
-                    if (DEBUG) {
-                        Log.v(TAG, "unsubscribed ");
+                    };
+                    try {
+                        remoteEventManager.subscribe(remoteEventListener);
+                    } catch (Exception ex) {
+                        remoteSubject.onCompleted();
                     }
-                    remoteEventManager.unsubscribe();
-                } catch (Exception ex) {
-                    publishSubject.onCompleted();
                 }
-            }
-        }).asObservable();
 
+                @Override
+                public void onAllUnsubscribe() {
+                    if (DEBUG) {
+                        Log.v(TAG, "onAllUnsubscribe");
+                    }
+                    try {
+                        remoteEventManager.unsubscribe();
+                    } catch (Exception ignored) {
+                    } finally {
+                        remoteEventListener = null;
+                    }
+                }
+            };
+        }
+        return remoteSubject;
     }
 
     /**
      * Reads and returns the correct type of data from the bundle
      */
+    @SuppressWarnings("unchecked")
     private T getData(Bundle remoteData, RemoteDataType dataType) {
+        if (DEBUG) {
+            Log.v(TAG, "Parsing datatype " + dataType);
+        }
         switch (dataType) {
             case Parcelable:
                 return (T) remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY);
@@ -162,11 +178,15 @@ public class RemoteObservable<T> implements Parcelable {
     /**
      * Reads and returns the parceler data from bundle
      */
+    @SuppressWarnings("unchecked")
     private T getParcelerData(Bundle remoteData) {
         try {
             Object parcelerObject = remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY);
-            return (T) parcelerObject.getClass().getMethod("getParcel", (Class) null).invoke(parcelerObject);
-        } catch (Exception exception) {
+            return (T) parcelerObject.getClass().getMethod("getParcel", (Class[]) null).invoke(parcelerObject);
+        } catch (Exception e) {
+            if (DEBUG) {
+                Log.w(TAG, "Parcel exception ", e);
+            }
         }
         return null;
     }

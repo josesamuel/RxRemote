@@ -1,6 +1,7 @@
 package io.reactivex.remote.internal;
 
 /**
+ * @hide
  * Data types supported
  */
 public enum RemoteDataType {

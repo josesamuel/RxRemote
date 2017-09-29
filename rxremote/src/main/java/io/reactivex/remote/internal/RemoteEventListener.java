@@ -4,6 +4,8 @@ package io.reactivex.remote.internal;
 import android.os.Bundle;
 
 /**
+ * @hide
+ *
  * Used internally by {@link io.reactivex.remote.RemoteObservable} to receive events
  */
 public interface RemoteEventListener {

@@ -1,13 +1,17 @@
 package io.reactivex.remote;
 
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.Parcelable;
 import android.util.Log;
 
 import java.lang.reflect.Constructor;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.reactivex.remote.internal.RemoteDataType;
 import io.reactivex.remote.internal.RemoteEventListener;
+import io.reactivex.remote.internal.RemoteEventListener_Proxy;
 import io.reactivex.remote.internal.RemoteEventManager;
 
 /**
@@ -22,6 +26,7 @@ import io.reactivex.remote.internal.RemoteEventManager;
  * @param <T> Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
  *            {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
  *            or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
+ * @author js
  */
 public class RemoteEventController<T> {
 
@@ -69,14 +74,14 @@ public class RemoteEventController<T> {
     }
 
     /**
-     * Override this to know when a client subscribed to the observable
+     * Override this to know when <b>first</b> client subscribed to the observable
      */
     public void onSubscribed() {
 
     }
 
     /**
-     * Override this to know when client unsubscribed.
+     * Override this to know when <b>ALL</b> clients have unsubscribed.
      */
     public void onUnSubscribed() {
 
@@ -141,16 +146,27 @@ public class RemoteEventController<T> {
     class RemoteEventHandler implements RemoteEventManager {
 
         private RemoteEventListener listener;
+        private IBinder.DeathRecipient deathRecipient;
 
         @Override
-        public void subscribe(RemoteEventListener listener) {
+        public void subscribe(final RemoteEventListener listener) {
             if (DEBUG) {
                 Log.v(TAG, "onSubscribe " + completed + " " + lastEvent);
             }
-            this.listener = listener;
             synchronized (LOCK) {
+                this.listener = listener;
                 if (!completed) {
                     RemoteEventController.this.onSubscribed();
+                    deathRecipient = new IBinder.DeathRecipient() {
+                        @Override
+                        public void binderDied() {
+                            if (DEBUG) {
+                                Log.v(TAG, "Binder dead");
+                            }
+                            unsubscribe();
+                        }
+                    };
+                    ((RemoteEventListener_Proxy) listener).linkToDeath(deathRecipient);
                 }
                 if (lastEvent != null) {
                     sendEventToObservable(lastEvent, dataType);
@@ -163,12 +179,15 @@ public class RemoteEventController<T> {
 
         @Override
         public void unsubscribe() {
-            if (DEBUG) {
-                Log.v(TAG, "on unsubscribe" + lastEvent);
+            if (listener != null) {
+                if (DEBUG) {
+                    Log.v(TAG, "on unsubscribe" + lastEvent);
+                }
+                RemoteEventController.this.onUnSubscribed();
+                ((RemoteEventListener_Proxy) listener).unLinkToDeath(deathRecipient);
+                listener = null;
+                deathRecipient = null;
             }
-
-            this.listener = null;
-            RemoteEventController.this.onUnSubscribed();
         }
 
 
