@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+Version 1.0.5 *(2017-09-30)*
+----------------------------
+Recover conncetion with service
+
 Version 1.0.4 *(2017-09-28)*
 ----------------------------
 Single connection per RemoteObservable

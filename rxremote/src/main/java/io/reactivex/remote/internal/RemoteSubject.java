@@ -32,6 +32,7 @@ public class RemoteSubject<T> extends Subject<T, T> {
         super(state);
         this.state = state;
         state.setParent(this);
+        onInit();
     }
 
     @Override
@@ -53,6 +54,14 @@ public class RemoteSubject<T> extends Subject<T, T> {
     @Override
     public boolean hasObservers() {
         return state.get().length != 0;
+    }
+
+
+    /**
+     * Override to initalize
+     */
+    public void onInit() {
+
     }
 
     /**

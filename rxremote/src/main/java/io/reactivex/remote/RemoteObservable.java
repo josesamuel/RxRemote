@@ -1,9 +1,13 @@
 package io.reactivex.remote;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Parcelable;
 import android.util.Log;
+
+import java.util.concurrent.Callable;
 
 import io.reactivex.remote.internal.RemoteDataType;
 import io.reactivex.remote.internal.RemoteEventListener;
@@ -16,7 +20,7 @@ import rx.Observable;
 /**
  * {@link Observable} across android remote services.
  * <p>
- * This is a {@link Parcelable} which can be passed through remoter service
+ * This is a {@link Parcelable} which can be passed through remote service
  * aidl or <a href=\"https://bit.ly/Remoter\">Remoter</a> interfaces
  * and then get an {@link Observable} from this class at the client side.
  *
@@ -43,6 +47,7 @@ public class RemoteObservable<T> implements Parcelable {
 
     private IBinder remoteEventBinder;
     private RemoteSubject<T> remoteSubject;
+    private Callable<RemoteObservable<T>> reconnecter;
 
     //*************************************************************
 
@@ -80,13 +85,62 @@ public class RemoteObservable<T> implements Parcelable {
     }
 
     /**
+     * Sets a Callable to be used to reconnect if the connection with the remote
+     * service dies.
+     */
+    public void setReconnecter(Callable<RemoteObservable<T>> reconnecter) {
+        this.reconnecter = reconnecter;
+    }
+
+    /**
      * Initializes {@link RemoteSubject} as needed and returns
      */
     private synchronized RemoteSubject<T> getRemoteSubject() {
         if (remoteSubject == null) {
-            final RemoteEventManager remoteEventManager = new RemoteEventManager_Proxy(remoteEventBinder);
+            final RemoteEventManager_Proxy remoteEventManager = new RemoteEventManager_Proxy(remoteEventBinder);
             remoteSubject = new RemoteSubject<T>() {
                 RemoteEventListener remoteEventListener;
+                IBinder.DeathRecipient deathRecipient = new IBinder.DeathRecipient() {
+                    @Override
+                    public void binderDied() {
+                        //connection with service gone.
+                        //Try reconnect if a reconnecter is provided.
+                        if (reconnecter != null) {
+                            int RECONNECT_DELAY = 1000;
+                            final HandlerThread handlerThread = new HandlerThread("ObservableReconnect");
+                            final Handler handler = new Handler(handlerThread.getLooper());
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        Log.i(TAG, "Attempting reconnection for RemoteObservable");
+                                        remoteEventManager.unLinkToDeath(deathRecipient);
+                                        RemoteObservable<T> reconectedObservable = reconnecter.call();
+                                        if (reconectedObservable != null) {
+                                            remoteEventBinder = reconectedObservable.remoteEventBinder;
+                                            remoteEventManager.resetBinder(remoteEventBinder);
+                                            remoteEventManager.linkToDeath(deathRecipient);
+                                            //resubsribe if there are any subscribers
+                                            if (remoteEventListener != null) {
+                                                onFirstSubscribe();
+                                            }
+                                        }
+                                    } catch (Exception ex) {
+                                        Log.w(TAG, "Unable to reconnect", ex);
+                                    }
+                                    handler.getLooper().quit();
+                                }
+                            }, RECONNECT_DELAY);
+                        } else {
+                            Log.i(TAG, "RemoteObservable lost connection with remote service. No reconnector found");
+                        }
+                    }
+                };
+
+                @Override
+                public void onInit() {
+                    remoteEventManager.linkToDeath(deathRecipient);
+                }
 
                 @Override
                 public void onFirstSubscribe() {
