@@ -19,6 +19,8 @@ public class RemoteEventListener_Proxy implements RemoteEventListener {
 
     private static final int TRANSACTION_onCompleted_1 = android.os.IBinder.FIRST_CALL_TRANSACTION + 1;
 
+    private static final int TRANSACTION_onError_2 = android.os.IBinder.FIRST_CALL_TRANSACTION + 2;
+
     private IBinder mRemote;
 
     /**
@@ -43,6 +45,26 @@ public class RemoteEventListener_Proxy implements RemoteEventListener {
                 data.writeInt(0);
             }
             mRemote.transact(TRANSACTION_onRemoteEvent_0, data, reply, android.os.IBinder.FLAG_ONEWAY);
+        } catch (RemoteException re) {
+            throw new RuntimeException(re);
+        } finally {
+            reply.recycle();
+            data.recycle();
+        }
+    }
+
+    @Override
+    public void onError(Exception exception) {
+        android.os.Parcel data = android.os.Parcel.obtain();
+        android.os.Parcel reply = android.os.Parcel.obtain();
+        try {
+            data.writeInterfaceToken(DESCRIPTOR);
+            if (exception != null) {
+                data.writeString(exception.getMessage());
+            } else {
+                data.writeString("");
+            }
+            mRemote.transact(TRANSACTION_onError_2, data, reply, android.os.IBinder.FLAG_ONEWAY);
         } catch (RemoteException re) {
             throw new RuntimeException(re);
         } finally {

@@ -14,8 +14,9 @@ public interface ISampleService {
 
     RemoteObservable<CustomData> getCDObservable();
 
-    RemoteObservable<Integer> getIntbservable();
+    RemoteObservable<Integer> getIntObservable();
 
-    RemoteObservable<String> getStringbservable();
+    RemoteObservable<String> getStringObservable();
 
+    RemoteObservable<Integer> getIntObservableThatThrowsException();
 }

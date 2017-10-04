@@ -34,9 +34,24 @@ public class RemoteEventController<T> {
     private static final boolean DEBUG = false;
     private boolean completed;
     private T lastEvent;
+    private Exception lastException;
     private RemoteDataType dataType = RemoteDataType.UnKnown;
     private Object LOCK = new Object();
     private RemoteEventHandler remoteEventHandler = new RemoteEventHandler();
+    private Class<T> dataTypeClass;
+
+
+    /**
+     * Create a {@link RemoteEventController} that is used to send the data of the given type
+     *
+     * @param dataTypeClass The Class of the type of data that will be send.
+     *                      Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
+     *                      {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
+     *                      or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
+     */
+    public RemoteEventController(Class<T> dataTypeClass) {
+        this.dataTypeClass = dataTypeClass;
+    }
 
 
     public RemoteEventManager getRemoteEventManager() {
@@ -64,12 +79,27 @@ public class RemoteEventController<T> {
     }
 
     /**
-     * Generate an sendOnCompleted event at the client observable.
+     * Generate an onCompleted event at the client observable.
      */
     public final void sendCompleted() {
-        synchronized (LOCK) {
-            completed = true;
-            remoteEventHandler.sendOnCompleted();
+        if (!completed) {
+            synchronized (LOCK) {
+                completed = true;
+                remoteEventHandler.sendOnCompleted();
+            }
+        }
+    }
+
+    /**
+     * Generate an onError event at the client observable.
+     */
+    public final void sendError(Exception exception) {
+        if (!completed) {
+            synchronized (LOCK) {
+                lastException = exception;
+                completed = true;
+                remoteEventHandler.sendOnError(exception);
+            }
         }
     }
 
@@ -122,7 +152,7 @@ public class RemoteEventController<T> {
             return RemoteDataType.Parcelable;
         } else {
             try {
-                Class.forName(data.getClass().getName() + "$$Parcelable");
+                Class.forName(dataTypeClass.getName() + "$$Parcelable");
                 return RemoteDataType.Parceler;
             } catch (ClassNotFoundException ignored) {
                 return RemoteDataType.UnKnown;
@@ -137,8 +167,8 @@ public class RemoteEventController<T> {
         if (data instanceof Parcelable) {
             return (Parcelable) data;
         } else {
-            Class parcelClass = Class.forName(data.getClass().getName() + "$$Parcelable");
-            Constructor constructor = parcelClass.getConstructor(data.getClass());
+            Class parcelClass = Class.forName(dataTypeClass.getName() + "$$Parcelable");
+            Constructor constructor = parcelClass.getConstructor(dataTypeClass);
             return (Parcelable) constructor.newInstance(data);
         }
     }
@@ -171,7 +201,9 @@ public class RemoteEventController<T> {
                 if (lastEvent != null) {
                     sendEventToObservable(lastEvent, dataType);
                 }
-                if (completed) {
+                if (lastException != null) {
+                    sendOnError(lastException);
+                } else if (completed) {
                     sendOnCompleted();
                 }
             }
@@ -240,8 +272,10 @@ public class RemoteEventController<T> {
                     listener.onRemoteEvent(remoteData);
                 }
             } catch (Exception ex) {
-                completed = true;
-                onUnSubscribed();
+                if (!completed) {
+                    completed = true;
+                    onUnSubscribed();
+                }
             }
         }
 
@@ -259,10 +293,34 @@ public class RemoteEventController<T> {
                     this.listener = null;
                 }
             } catch (Exception ex) {
-                completed = true;
-                onUnSubscribed();
+                if (!completed) {
+                    completed = true;
+                    onUnSubscribed();
+                }
             }
         }
+
+        /**
+         * Send oncompleted
+         */
+        void sendOnError(Exception exception) {
+            try {
+                if (DEBUG) {
+                    Log.v(TAG, "Sending onError" + listener);
+                }
+
+                if (this.listener != null) {
+                    listener.onError(exception);
+                    this.listener = null;
+                }
+            } catch (Exception ex) {
+                if (!completed) {
+                    completed = true;
+                    onUnSubscribed();
+                }
+            }
+        }
+
     }
 
 }

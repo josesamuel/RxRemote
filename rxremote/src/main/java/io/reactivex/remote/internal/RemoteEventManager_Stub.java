@@ -61,7 +61,6 @@ public class RemoteEventManager_Stub extends Binder {
                 }
             }
         } catch (Exception re) {
-            throw new RemoteException();
         }
         return super.onTransact(code, data, reply, flags);
     }

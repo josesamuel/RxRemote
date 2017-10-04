@@ -41,6 +41,7 @@ public class RemoteObservableTest {
     private Object objectLock = new Object();
     private ISampleService sampleService;
     private volatile boolean expectingClose;
+    private volatile boolean expectingOnError;
     private int eventsReceived;
 
 
@@ -235,11 +236,11 @@ public class RemoteObservableTest {
 
     @Test
     public void testIntObservable() throws Exception {
-        RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntbservable();
+        RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservable();
         Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
         intObservableTest(integerObservable);
 
-        integerRemoteObservable = sampleService.getIntbservable();
+        integerRemoteObservable = sampleService.getIntObservable();
         integerObservable = integerRemoteObservable.getObservable();
         intObservableTest(integerObservable);
     }
@@ -298,6 +299,79 @@ public class RemoteObservableTest {
         subscription2.unsubscribe();
     }
 
+
+    @Test
+    public void intObservableThatThrowsExceptionTest() throws Exception {
+
+        RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservableThatThrowsException();
+        Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
+
+        expectingClose = false;
+        eventsReceived = 0;
+        Subscription subscription1 = integerObservable.subscribe(new Action1<Integer>() {
+            int expected = 0;
+
+            @Override
+            public void call(Integer data) {
+                Log.v(TAG, "Int data " + data.intValue());
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Assert.assertEquals(expected, data.intValue());
+                expected++;
+                if (eventsReceived == 2) {
+                    expectingOnError = true;
+                }
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.assertTrue(expectingClose);
+                expectingClose = false;
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "Int data onComplete");
+                Assert.assertTrue(expectingClose);
+            }
+        });
+        Thread.sleep(3000);
+        Assert.assertEquals(2, eventsReceived);
+        Assert.assertFalse(expectingClose);
+
+        eventsReceived = 0;
+
+        Subscription subscription2 = integerRemoteObservable.getObservable().subscribe(new Action1<Integer>() {
+            int expected = 1;
+
+            @Override
+            public void call(Integer data) {
+                eventsReceived++;
+                Assert.assertEquals(expected, data.intValue());
+                expectingOnError = true;
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.assertTrue(expectingClose);
+                expectingClose = false;
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "Int data onComplete");
+                Assert.assertTrue(expectingClose);
+            }
+        });
+
+        Thread.sleep(3000);
+        Thread.sleep(3000);
+        Assert.assertEquals(1, eventsReceived);
+        Assert.assertFalse(expectingClose);
+
+        subscription1.unsubscribe();
+        subscription2.unsubscribe();
+    }
 
 }
 

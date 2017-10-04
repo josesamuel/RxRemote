@@ -162,12 +162,15 @@ public class RemoteObservable<T> implements Parcelable {
 
                         @Override
                         public void onCompleted() {
-                            synchronized (remoteEventManager) {
-                                if (DEBUG) {
-                                    Log.v(TAG, "onCompleted ");
-                                }
-                                remoteSubject.onCompleted();
+                            if (DEBUG) {
+                                Log.v(TAG, "onCompleted ");
                             }
+                            remoteSubject.onCompleted();
+                        }
+
+                        @Override
+                        public void onError(Exception exception) {
+                            remoteSubject.onError(exception);
                         }
                     };
                     try {
