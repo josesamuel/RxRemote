@@ -1,11 +1,7 @@
 package util.remoter.service;
 
-import android.os.Parcelable;
-
 import org.parceler.Parcel;
-import org.parceler.Parcels;
-
-import java.util.List;
+import org.parceler.ParcelConstructor;
 
 /**
  * For testing @Parcel (parceler)
@@ -13,6 +9,11 @@ import java.util.List;
 @Parcel
 public class CustomData {
     int data;
+
+    @ParcelConstructor
+    public CustomData(int data) {
+        this.data = data;
+    }
 
     public int getData() {
         return data;

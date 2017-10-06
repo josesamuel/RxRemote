@@ -43,7 +43,7 @@ public class RemoteObservable<T> implements Parcelable {
         }
     };
     private static final String TAG = "RemoteObservable";
-    private static final boolean DEBUG = false;
+    private boolean DEBUG = false;
 
     private IBinder remoteEventBinder;
     private RemoteSubject<T> remoteSubject;
@@ -90,6 +90,13 @@ public class RemoteObservable<T> implements Parcelable {
      */
     public void setReconnecter(Callable<RemoteObservable<T>> reconnecter) {
         this.reconnecter = reconnecter;
+    }
+
+    /**
+     * Enable or disable debug prints. Disabled by default
+     */
+    public void setDebug(boolean enable) {
+        DEBUG = enable;
     }
 
     /**

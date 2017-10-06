@@ -24,6 +24,7 @@ import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import util.remoter.remoterservice.TestActivity;
 import util.remoter.service.CustomData;
+import util.remoter.service.ExtendedCustomData;
 import util.remoter.service.FooParcelable;
 import util.remoter.service.ISampleService;
 import util.remoter.service.ISampleService_Proxy;
@@ -177,9 +178,20 @@ public class RemoteObservableTest {
 
             @Override
             public void call(CustomData fooParcelable) {
+                Log.v(TAG, "Data 1st " + fooParcelable);
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
                 Assert.assertEquals(counter, fooParcelable.getData());
+
+                if (counter % 3 == 0) {
+                    Assert.assertTrue(fooParcelable instanceof CustomData);
+                } else if (counter % 3 == 1) {
+                    Assert.assertTrue(fooParcelable instanceof ExtendedCustomData);
+                } else {
+                    Assert.assertTrue(fooParcelable instanceof ExtendedCustomData);
+                }
+
+
                 counter++;
                 Log.v(TAG, "Data 1st " + fooParcelable.getData());
 

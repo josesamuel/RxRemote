@@ -31,27 +31,13 @@ import io.reactivex.remote.internal.RemoteEventManager;
 public class RemoteEventController<T> {
 
     private static final String TAG = "RemoteEventController";
-    private static final boolean DEBUG = false;
+    private boolean DEBUG = false;
     private boolean completed;
     private T lastEvent;
     private Exception lastException;
     private RemoteDataType dataType = RemoteDataType.UnKnown;
     private Object LOCK = new Object();
     private RemoteEventHandler remoteEventHandler = new RemoteEventHandler();
-    private Class<T> dataTypeClass;
-
-
-    /**
-     * Create a {@link RemoteEventController} that is used to send the data of the given type
-     *
-     * @param dataTypeClass The Class of the type of data that will be send.
-     *                      Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
-     *                      {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
-     *                      or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
-     */
-    public RemoteEventController(Class<T> dataTypeClass) {
-        this.dataTypeClass = dataTypeClass;
-    }
 
 
     public RemoteEventManager getRemoteEventManager() {
@@ -118,6 +104,14 @@ public class RemoteEventController<T> {
     }
 
     /**
+     * Enable or disable debug prints. Disabled by default
+     */
+    public void setDebug(boolean enable) {
+        DEBUG = enable;
+    }
+
+
+    /**
      * Returns the type of data
      */
     private RemoteDataType getDataType(T data) {
@@ -150,27 +144,42 @@ public class RemoteEventController<T> {
         }
         if (data instanceof Parcelable) {
             return RemoteDataType.Parcelable;
+        } else if (getParcelerClass(data) != null) {
+            return RemoteDataType.Parceler;
         } else {
-            try {
-                Class.forName(dataTypeClass.getName() + "$$Parcelable");
-                return RemoteDataType.Parceler;
-            } catch (ClassNotFoundException ignored) {
-                return RemoteDataType.UnKnown;
-            }
+            return RemoteDataType.UnKnown;
+        }
+    }
+
+
+    /**
+     * Writes the @Parcel data
+     */
+    private void writeParceler(T data, Bundle bundle) throws Exception {
+        Class parcelerClass = getParcelerClass(data);
+        if (parcelerClass != null) {
+            Class parcelClass = Class.forName(parcelerClass.getName() + "$$Parcelable");
+            Constructor constructor = parcelClass.getConstructor(parcelerClass);
+            Parcelable parcelable = (Parcelable) constructor.newInstance(data);
+            bundle.putParcelable(RemoteEventManager.REMOTE_DATA_KEY, parcelable);
         }
     }
 
     /**
-     * Covert the data to {@link Parcelable}
+     * Finds the parceler class type
      */
-    private Parcelable toParcelable(T data) throws Exception {
-        if (data instanceof Parcelable) {
-            return (Parcelable) data;
-        } else {
-            Class parcelClass = Class.forName(dataTypeClass.getName() + "$$Parcelable");
-            Constructor constructor = parcelClass.getConstructor(dataTypeClass);
-            return (Parcelable) constructor.newInstance(data);
+    private Class getParcelerClass(Object object) {
+        Class objClass = object.getClass();
+        boolean found = false;
+        while (!found && objClass != null) {
+            try {
+                Class.forName(objClass.getName() + "$$Parcelable");
+                found = true;
+            } catch (ClassNotFoundException ignored) {
+                objClass = objClass.getSuperclass();
+            }
         }
+        return objClass;
     }
 
     class RemoteEventHandler implements RemoteEventManager {
@@ -237,8 +246,10 @@ public class RemoteEventController<T> {
                     remoteData.putString(RemoteEventManager.REMOTE_DATA_TYPE, dataType.name());
                     switch (dataType) {
                         case Parcelable:
+                            remoteData.putParcelable(RemoteEventManager.REMOTE_DATA_KEY, (Parcelable) data);
+                            break;
                         case Parceler:
-                            remoteData.putParcelable(RemoteEventManager.REMOTE_DATA_KEY, toParcelable(data));
+                            writeParceler(data, remoteData);
                             break;
                         case Byte:
                             remoteData.putByte(RemoteEventManager.REMOTE_DATA_KEY, (Byte) data);

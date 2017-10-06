@@ -6,6 +6,7 @@ import io.reactivex.remote.RemoteEventController;
 import io.reactivex.remote.RemoteObservable;
 import util.remoter.service.CustomData;
 import util.remoter.service.ExtendedCustomData;
+import util.remoter.service.ExtendedCustomData2;
 import util.remoter.service.FooParcelable;
 import util.remoter.service.ISampleService;
 
@@ -13,7 +14,7 @@ public class SampleServiceImpl implements ISampleService {
 
 
     private static final String TAG = "RemoteObservablesrc";
-    RemoteEventController<Integer> intDataEventController = new RemoteEventController<>(Integer.class);
+    RemoteEventController<Integer> intDataEventController = new RemoteEventController<>();
 
     SampleServiceImpl() {
         //to test clients will always receive the last data
@@ -25,7 +26,7 @@ public class SampleServiceImpl implements ISampleService {
     @Override
     public RemoteObservable<FooParcelable> getFooObservable() {
         Log.v(TAG, "getFooObservable");
-        return new RemoteObservable<>(new RemoteEventController<FooParcelable>(FooParcelable.class) {
+        return new RemoteObservable<>(new RemoteEventController<FooParcelable>() {
             boolean stopped = false;
             int counter = 0;
             Thread eventThread;
@@ -68,7 +69,7 @@ public class SampleServiceImpl implements ISampleService {
 
     @Override
     public RemoteObservable<CustomData> getCDObservable() {
-        return new RemoteObservable<>(new RemoteEventController<CustomData>(CustomData.class) {
+        return new RemoteObservable<>(new RemoteEventController<CustomData>() {
             boolean stopped = false;
             int counter = 0;
             Thread eventThread;
@@ -85,10 +86,12 @@ public class SampleServiceImpl implements ISampleService {
                                     Thread.sleep(1000);
                                     if (!stopped) {
                                         CustomData data = null;
-                                        if (counter % 2 == 0) {
+                                        if (counter % 3 == 0) {
                                             data = new CustomData(counter);
-                                        } else {
+                                        } else if (counter % 3 == 1) {
                                             data = new ExtendedCustomData(counter);
+                                        } else {
+                                            data = new ExtendedCustomData2(counter);
                                         }
                                         Log.v(TAG, "Sending " + data);
                                         sendEvent(data);
@@ -121,7 +124,7 @@ public class SampleServiceImpl implements ISampleService {
 
     @Override
     public RemoteObservable<Integer> getIntObservableThatThrowsException() {
-        return new RemoteObservable<>(new RemoteEventController<Integer>(Integer.class) {
+        return new RemoteObservable<>(new RemoteEventController<Integer>() {
             boolean stopped = false;
             int counter = 0;
             Thread eventThread;
@@ -167,7 +170,7 @@ public class SampleServiceImpl implements ISampleService {
 
     @Override
     public RemoteObservable<String> getStringObservable() {
-        return new RemoteObservable<>(new RemoteEventController<String>(String.class) {
+        return new RemoteObservable<>(new RemoteEventController<String>() {
             boolean stopped = false;
             int counter = 0;
             Thread eventThread;
