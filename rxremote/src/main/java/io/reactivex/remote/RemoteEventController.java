@@ -146,6 +146,8 @@ public class RemoteEventController<T> {
             return RemoteDataType.Parcelable;
         } else if (getParcelerClass(data) != null) {
             return RemoteDataType.Parceler;
+        } else if (getRemoterBinder(data) != null) {
+            return RemoteDataType.Remoter;
         } else {
             return RemoteDataType.UnKnown;
         }
@@ -166,6 +168,21 @@ public class RemoteEventController<T> {
     }
 
     /**
+     * Writes the @Remoter data
+     */
+    private void writeRemoter(T data, Bundle bundle) throws Exception {
+        Class remoterInterfaceClass = getRemoterBinder(data);
+        if (remoterInterfaceClass != null) {
+            Class remoterStubClass = Class.forName(remoterInterfaceClass.getName() + "_Stub");
+            Constructor constructor = remoterStubClass.getConstructor(remoterInterfaceClass);
+            IBinder binder = (IBinder) constructor.newInstance(data);
+            bundle.putString(RemoteEventManager.REMOTE_DATA_EXTRA, remoterInterfaceClass.getName());
+            bundle.putBinder(RemoteEventManager.REMOTE_DATA_KEY, binder);
+        }
+    }
+
+
+    /**
      * Finds the parceler class type
      */
     private Class getParcelerClass(Object object) {
@@ -180,6 +197,23 @@ public class RemoteEventController<T> {
             }
         }
         return objClass;
+    }
+
+    /**
+     * Returns the remoter binder if it is of that type
+     */
+    private Class getRemoterBinder(Object object) {
+        Class objClass = object.getClass();
+        Class remoterClass = null;
+        for (Class implementedInterface : objClass.getInterfaces()) {
+            try {
+                Class.forName(implementedInterface.getName() + "_Stub");
+                remoterClass = implementedInterface;
+                break;
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+        return remoterClass;
     }
 
     class RemoteEventHandler implements RemoteEventManager {
@@ -250,6 +284,9 @@ public class RemoteEventController<T> {
                             break;
                         case Parceler:
                             writeParceler(data, remoteData);
+                            break;
+                        case Remoter:
+                            writeRemoter(data, remoteData);
                             break;
                         case Byte:
                             remoteData.putByte(RemoteEventManager.REMOTE_DATA_KEY, (Byte) data);

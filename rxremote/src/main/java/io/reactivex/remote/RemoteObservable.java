@@ -7,6 +7,7 @@ import android.os.IBinder;
 import android.os.Parcelable;
 import android.util.Log;
 
+import java.lang.reflect.Constructor;
 import java.util.concurrent.Callable;
 
 import io.reactivex.remote.internal.RemoteDataType;
@@ -235,6 +236,9 @@ public class RemoteObservable<T> implements Parcelable {
                 return (T) (Boolean) (remoteData.getInt(RemoteEventManager.REMOTE_DATA_KEY) == 1);
             case Parceler:
                 return getParcelerData(remoteData);
+            case Remoter:
+                return getRemoterData(remoteData);
+
         }
         return null;
     }
@@ -247,6 +251,24 @@ public class RemoteObservable<T> implements Parcelable {
         try {
             Object parcelerObject = remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY);
             return (T) parcelerObject.getClass().getMethod("getParcel", (Class[]) null).invoke(parcelerObject);
+        } catch (Exception e) {
+            if (DEBUG) {
+                Log.w(TAG, "Parcel exception ", e);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Reads and returns the parceler data from bundle
+     */
+    @SuppressWarnings("unchecked")
+    private T getRemoterData(Bundle remoteData) {
+        try {
+            String remoterInterface = remoteData.getString(RemoteEventManager.REMOTE_DATA_EXTRA);
+            Class parcelClass = Class.forName(remoterInterface + "_Proxy");
+            Constructor constructor = parcelClass.getConstructor(IBinder.class);
+            return (T) constructor.newInstance(remoteData.getBinder(RemoteEventManager.REMOTE_DATA_KEY));
         } catch (Exception e) {
             if (DEBUG) {
                 Log.w(TAG, "Parcel exception ", e);

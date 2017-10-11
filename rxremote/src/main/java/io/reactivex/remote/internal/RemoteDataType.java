@@ -7,6 +7,7 @@ package io.reactivex.remote.internal;
 public enum RemoteDataType {
     Parcelable,
     Parceler,
+    Remoter,
     String,
     Integer,
     Float,
