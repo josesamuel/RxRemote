@@ -8,6 +8,7 @@ import util.remoter.service.CustomData;
 import util.remoter.service.ExtendedCustomData;
 import util.remoter.service.ExtendedCustomData2;
 import util.remoter.service.FooParcelable;
+import util.remoter.service.IEcho;
 import util.remoter.service.ISampleService;
 
 public class SampleServiceImpl implements ISampleService {
@@ -15,12 +16,16 @@ public class SampleServiceImpl implements ISampleService {
 
     private static final String TAG = "RemoteObservablesrc";
     RemoteEventController<Integer> intDataEventController = new RemoteEventController<>();
+    RemoteEventController<IEcho> remoterDataEventController = new RemoteEventController<>();
 
     SampleServiceImpl() {
         //to test clients will always receive the last data
         intDataEventController.sendEvent(7);
         intDataEventController.sendEvent(9);
         intDataEventController.sendCompleted();
+
+        remoterDataEventController.sendEvent(new EchoImpl());
+        remoterDataEventController.sendCompleted();
     }
 
     @Override
@@ -166,6 +171,11 @@ public class SampleServiceImpl implements ISampleService {
                 sendCompleted();
             }
         });
+    }
+
+    @Override
+    public RemoteObservable<IEcho> getRemoterObservable() {
+        return new RemoteObservable<>(remoterDataEventController);
     }
 
     @Override

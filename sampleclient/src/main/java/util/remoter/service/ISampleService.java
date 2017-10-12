@@ -19,4 +19,6 @@ public interface ISampleService {
     RemoteObservable<String> getStringObservable();
 
     RemoteObservable<Integer> getIntObservableThatThrowsException();
+
+    RemoteObservable<IEcho> getRemoterObservable();
 }

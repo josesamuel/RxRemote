@@ -26,6 +26,7 @@ import util.remoter.remoterservice.TestActivity;
 import util.remoter.service.CustomData;
 import util.remoter.service.ExtendedCustomData;
 import util.remoter.service.FooParcelable;
+import util.remoter.service.IEcho;
 import util.remoter.service.ISampleService;
 import util.remoter.service.ISampleService_Proxy;
 
@@ -383,6 +384,41 @@ public class RemoteObservableTest {
 
         subscription1.unsubscribe();
         subscription2.unsubscribe();
+    }
+
+
+    @Test
+    public void testRemoterObservable() throws Exception {
+        RemoteObservable<IEcho> remoteObservable = sampleService.getRemoterObservable();
+        Observable<IEcho> observable = remoteObservable.getObservable();
+
+        expectingClose = false;
+        eventsReceived = 0;
+        Subscription subscription1 = observable.subscribe(new Action1<IEcho>() {
+
+            @Override
+            public void call(IEcho data) {
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Log.v(TAG, "Remoter data " + data +" " + data.echo("Hello"));
+                Assert.assertEquals("1", data.echo("1"));
+                expectingClose = true;
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.fail("Unexpected observable exception");
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "Remoter data onComplete");
+                Assert.assertTrue(expectingClose);
+            }
+        });
+        Thread.sleep(3000);
+        Assert.assertEquals(1, eventsReceived);
+
     }
 
 }
