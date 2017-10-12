@@ -21,4 +21,6 @@ public interface ISampleService {
     RemoteObservable<Integer> getIntObservableThatThrowsException();
 
     RemoteObservable<IEcho> getRemoterObservable();
+
+    RemoteObservable<IGen<String>> getGenericRemoterObservable();
 }

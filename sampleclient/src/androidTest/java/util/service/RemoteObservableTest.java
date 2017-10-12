@@ -27,6 +27,7 @@ import util.remoter.service.CustomData;
 import util.remoter.service.ExtendedCustomData;
 import util.remoter.service.FooParcelable;
 import util.remoter.service.IEcho;
+import util.remoter.service.IGen;
 import util.remoter.service.ISampleService;
 import util.remoter.service.ISampleService_Proxy;
 
@@ -400,7 +401,7 @@ public class RemoteObservableTest {
             public void call(IEcho data) {
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
-                Log.v(TAG, "Remoter data " + data +" " + data.echo("Hello"));
+                Log.v(TAG, "Remoter data " + data + " " + data.echo("Hello"));
                 Assert.assertEquals("1", data.echo("1"));
                 expectingClose = true;
             }
@@ -418,8 +419,41 @@ public class RemoteObservableTest {
         });
         Thread.sleep(3000);
         Assert.assertEquals(1, eventsReceived);
-
     }
+
+    @Test
+    public void testGenericRemoterObservable() throws Exception {
+        RemoteObservable<IGen<String>> remoteObservable = sampleService.getGenericRemoterObservable();
+        Observable<IGen<String>> observable = remoteObservable.getObservable();
+
+        expectingClose = false;
+        eventsReceived = 0;
+        Subscription subscription1 = observable.subscribe(new Action1<IGen<String>>() {
+
+            @Override
+            public void call(IGen<String> data) {
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Log.v(TAG, "Remoter data " + data + " " + data.echo("Hello"));
+                Assert.assertEquals("1", data.echo("1"));
+                expectingClose = true;
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.fail("Unexpected observable exception");
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "Remoter data onComplete");
+                Assert.assertTrue(expectingClose);
+            }
+        });
+        Thread.sleep(3000);
+        Assert.assertEquals(1, eventsReceived);
+    }
+
 
 }
 

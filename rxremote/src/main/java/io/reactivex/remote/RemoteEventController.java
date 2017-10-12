@@ -38,6 +38,8 @@ public class RemoteEventController<T> {
     private RemoteDataType dataType = RemoteDataType.UnKnown;
     private Object LOCK = new Object();
     private RemoteEventHandler remoteEventHandler = new RemoteEventHandler();
+    private Class lastDataTypeClass;
+    private RemoteDataType lastDataType;
 
 
     public RemoteEventManager getRemoteEventManager() {
@@ -48,18 +50,18 @@ public class RemoteEventController<T> {
      * Send the given data to the client observable
      *
      * @param data The data that needs to be send
-     * @throws IllegalArgumentException If an unsupported type of data is passed.
      */
-    public final void sendEvent(T data) throws IllegalArgumentException {
+    public final void sendEvent(T data) {
         if (!completed) {
             synchronized (LOCK) {
-                this.lastEvent = data;
-                this.dataType = getDataType(data);
-
-                if (dataType == RemoteDataType.UnKnown) {
-                    throw new IllegalArgumentException("Unsupported type " + data.getClass());
+                RemoteDataType dType = getDataType(data);
+                if (dType != RemoteDataType.UnKnown) {
+                    this.lastEvent = data;
+                    this.dataType = dType;
+                    remoteEventHandler.sendEventToObservable(lastEvent, dataType);
+                } else {
+                    Log.w(TAG, "Ignoring unsupported type " + data);
                 }
-                remoteEventHandler.sendEventToObservable(lastEvent, dataType);
             }
         }
     }
@@ -112,9 +114,26 @@ public class RemoteEventController<T> {
 
 
     /**
-     * Returns the type of data
+     * Returns what type of data this is
      */
     private RemoteDataType getDataType(T data) {
+        if (data != null) {
+            if (lastDataTypeClass == data.getClass()) {
+                return lastDataType;
+            } else {
+                lastDataTypeClass = data.getClass();
+                lastDataType = findDataType(data);
+                return lastDataType;
+            }
+        } else {
+            return RemoteDataType.UnKnown;
+        }
+    }
+
+    /**
+     * Finds the type of data
+     */
+    private RemoteDataType findDataType(T data) {
         if (data instanceof Byte) {
             return RemoteDataType.Byte;
         }
@@ -203,14 +222,25 @@ public class RemoteEventController<T> {
      * Returns the remoter binder if it is of that type
      */
     private Class getRemoterBinder(Object object) {
-        Class objClass = object.getClass();
+        return getRemoterBinder(object.getClass());
+    }
+
+    /**
+     * Returns the remoter binder if it is of that type
+     */
+    private Class getRemoterBinder(Class objClass) {
         Class remoterClass = null;
-        for (Class implementedInterface : objClass.getInterfaces()) {
-            try {
-                Class.forName(implementedInterface.getName() + "_Stub");
-                remoterClass = implementedInterface;
-                break;
-            } catch (ClassNotFoundException ignored) {
+        if (objClass != null) {
+            for (Class implementedInterface : objClass.getInterfaces()) {
+                try {
+                    Class.forName(implementedInterface.getName() + "_Stub");
+                    remoterClass = implementedInterface;
+                    break;
+                } catch (ClassNotFoundException ignored) {
+                }
+            }
+            if (remoterClass == null) {
+                return getRemoterBinder(objClass.getSuperclass());
             }
         }
         return remoterClass;
