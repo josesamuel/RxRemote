@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+Version 1.0.10 *(2017-12-04)*
+----------------------------
+Added support to get observable from local RemoteObservable
+
+
 Version 1.0.5 *(2017-09-30)*
 ----------------------------
 Recover conncetion with service

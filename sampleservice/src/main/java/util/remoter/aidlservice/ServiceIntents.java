@@ -5,6 +5,7 @@ package util.remoter.aidlservice;
  */
 public interface ServiceIntents {
 
+    String INTENT_LOCAL_SERVICE = "util.remoter.aidlservice.LocalSampleService";
     String INTENT_AIDL_SERVICE = "util.remoter.aidlservice.SampleService";
     String INTENT_AIDL_TEST_ACTIVITY = "util.remoter.aidlservice.TestActivity";
 

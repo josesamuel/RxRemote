@@ -48,7 +48,9 @@ public class RemoteObservable<T> implements Parcelable {
 
     private IBinder remoteEventBinder;
     private RemoteSubject<T> remoteSubject;
+    private RemoteSubject<T> localSubject;
     private Callable<RemoteObservable<T>> reconnecter;
+    private RemoteEventController<T> remoteEventController;
 
     //*************************************************************
 
@@ -58,6 +60,7 @@ public class RemoteObservable<T> implements Parcelable {
      * @param remoteController {@link RemoteEventController} used for generating the events
      */
     public RemoteObservable(RemoteEventController<T> remoteController) {
+        this.remoteEventController = remoteController;
         this.remoteEventBinder = new RemoteEventManager_Stub(remoteController.getRemoteEventManager());
     }
 
@@ -84,6 +87,16 @@ public class RemoteObservable<T> implements Parcelable {
     public Observable<T> getObservable() {
         return getRemoteSubject().asObservable();
     }
+
+    /**
+     * Same as {@link #getObservable()}, but to be used if this {@link RemoteObservable} is a local instance.
+     *
+     * @throws IllegalStateException if caled on a {@link RemoteObservable} that is not from a local service
+     */
+    public Observable<T> getLocalObservable() {
+        return getLocalSubject().asObservable();
+    }
+
 
     /**
      * Sets a Callable to be used to reconnect if the connection with the remote
@@ -204,6 +217,75 @@ public class RemoteObservable<T> implements Parcelable {
         }
         return remoteSubject;
     }
+
+    /**
+     * Initializes {@link RemoteSubject} as needed and returns
+     */
+    private synchronized RemoteSubject<T> getLocalSubject() {
+        if (localSubject == null) {
+            if (remoteEventController == null) {
+                throw new IllegalStateException("getLocalObservable can only be called on a local RemoteObservable");
+            }
+
+            final RemoteEventManager remoteEventManager = remoteEventController.getRemoteEventManager();
+            localSubject = new RemoteSubject<T>() {
+                RemoteEventListener remoteEventListener;
+
+                @Override
+                public void onFirstSubscribe() {
+                    if (DEBUG) {
+                        Log.v(TAG, "onFirst subscribe ");
+                    }
+
+                    remoteEventListener = new RemoteEventListener() {
+                        @Override
+                        public void onRemoteEvent(Bundle remoteData) {
+                            remoteData.setClassLoader(this.getClass().getClassLoader());
+                            RemoteDataType dataType = RemoteDataType.valueOf(remoteData.getString(RemoteEventManager.REMOTE_DATA_TYPE));
+                            T data = getData(remoteData, dataType);
+                            if (DEBUG) {
+                                Log.v(TAG, "onData " + data);
+                            }
+                            localSubject.onNext(data);
+                        }
+
+                        @Override
+                        public void onCompleted() {
+                            if (DEBUG) {
+                                Log.v(TAG, "onCompleted ");
+                            }
+                            localSubject.onCompleted();
+                        }
+
+                        @Override
+                        public void onError(Exception exception) {
+                            localSubject.onError(exception);
+                        }
+                    };
+                    try {
+                        remoteEventManager.subscribe(remoteEventListener);
+                    } catch (Exception ex) {
+                        localSubject.onCompleted();
+                    }
+                }
+
+                @Override
+                public void onAllUnsubscribe() {
+                    if (DEBUG) {
+                        Log.v(TAG, "onAllUnsubscribe");
+                    }
+                    try {
+                        remoteEventManager.unsubscribe();
+                    } catch (Exception ignored) {
+                    } finally {
+                        remoteEventListener = null;
+                    }
+                }
+            };
+        }
+        return localSubject;
+    }
+
 
     /**
      * Reads and returns the correct type of data from the bundle

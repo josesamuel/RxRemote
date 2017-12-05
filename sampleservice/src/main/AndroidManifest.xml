@@ -27,6 +27,15 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".LocalSampleService"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="util.remoter.aidlservice.LocalSampleService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
 
     </application>
 

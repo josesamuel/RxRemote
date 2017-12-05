@@ -13,34 +13,29 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import io.reactivex.remote.RemoteObservable;
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
-import util.remoter.remoterservice.TestActivity;
+import util.remoter.aidlservice.LocalSampleService;
+import util.remoter.aidlservice.ServiceIntents;
+import util.remoter.aidlservice.TestActivity;
 import util.remoter.service.CustomData;
 import util.remoter.service.ExtendedCustomData;
 import util.remoter.service.FooParcelable;
 import util.remoter.service.IEcho;
 import util.remoter.service.IGen;
 import util.remoter.service.ISampleService;
-import util.remoter.service.ISampleService_Proxy;
-
-import static util.remoter.remoterservice.ServiceIntents.INTENT_AIDL_SERVICE;
-import static util.remoter.remoterservice.ServiceIntents.INTENT_REMOTER_TEST_ACTIVITY;
 
 
 /**
- * Tests the {@link RemoteObservable}
+ * Tests the {@link RemoteObservable} using its getLocalObservable from a local service
  */
-public class RemoteObservableTest {
+public class LocalObservableTest {
 
-    private static final String TAG = RemoteObservableTest.class.getSimpleName();
+    private static final String TAG = LocalObservableTest.class.getSimpleName();
     private Object objectLock = new Object();
     private ISampleService sampleService;
     private volatile boolean expectingClose;
@@ -51,7 +46,7 @@ public class RemoteObservableTest {
     ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            sampleService = new ISampleService_Proxy(iBinder);
+            sampleService = ((LocalSampleService.LocalBinder) iBinder).getService();
             synchronized (objectLock) {
                 objectLock.notify();
             }
@@ -68,7 +63,7 @@ public class RemoteObservableTest {
     public ActivityTestRule<TestActivity> mActivityRule = new ActivityTestRule<TestActivity>(TestActivity.class) {
         @Override
         protected Intent getActivityIntent() {
-            Intent intent = new Intent(INTENT_REMOTER_TEST_ACTIVITY);
+            Intent intent = new Intent(ServiceIntents.INTENT_AIDL_TEST_ACTIVITY);
             return intent;
         }
     };
@@ -76,8 +71,8 @@ public class RemoteObservableTest {
     @Before
     public void setup() throws InterruptedException {
         synchronized (objectLock) {
-            Intent remoterServiceIntent = new Intent(INTENT_AIDL_SERVICE);
-            remoterServiceIntent.setClassName("util.remoter.aidlservice", INTENT_AIDL_SERVICE);
+            Intent remoterServiceIntent = new Intent(ServiceIntents.INTENT_LOCAL_SERVICE);
+            remoterServiceIntent.setClassName("util.remoter.aidlservice", ServiceIntents.INTENT_LOCAL_SERVICE);
 
             mActivityRule.getActivity().startService(remoterServiceIntent);
             mActivityRule.getActivity().bindService(remoterServiceIntent, serviceConnection, 0);
@@ -93,12 +88,6 @@ public class RemoteObservableTest {
     }
 
 
-    @Test(expected = IllegalStateException.class)
-    public void testLocalbservable() throws Exception {
-        final RemoteObservable<FooParcelable> fooObservable = sampleService.getFooObservable();
-        fooObservable.getLocalObservable();
-    }
-
     @Test
     public void testParcelableObservable() throws Exception {
         testParcelable();
@@ -111,7 +100,7 @@ public class RemoteObservableTest {
         eventsReceived = 0;
         Assert.assertNotNull(fooObservable);
 
-        Subscription subscription1 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
+        Subscription subscription1 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
             int counter = 0;
 
             @Override
@@ -135,7 +124,7 @@ public class RemoteObservableTest {
             }
         });
 
-        Subscription subscription2 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
+        Subscription subscription2 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
             int counter = 0;
 
             @Override
@@ -181,7 +170,7 @@ public class RemoteObservableTest {
         expectingClose = false;
         Assert.assertNotNull(fooObservable);
         eventsReceived = 0;
-        Subscription subscription1 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
+        Subscription subscription1 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
             int counter = 0;
 
             @Override
@@ -218,7 +207,7 @@ public class RemoteObservableTest {
 
         Log.v(TAG, "Sub1 created " + subscription1);
 
-        Subscription subscription2 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
+        Subscription subscription2 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
             int counter = 0;
 
             @Override
@@ -257,11 +246,11 @@ public class RemoteObservableTest {
     @Test
     public void testIntObservable() throws Exception {
         RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservable();
-        Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
+        Observable<Integer> integerObservable = integerRemoteObservable.getLocalObservable();
         intObservableTest(integerObservable);
 
         integerRemoteObservable = sampleService.getIntObservable();
-        integerObservable = integerRemoteObservable.getObservable();
+        integerObservable = integerRemoteObservable.getLocalObservable();
         intObservableTest(integerObservable);
     }
 
@@ -324,7 +313,7 @@ public class RemoteObservableTest {
     public void intObservableThatThrowsExceptionTest() throws Exception {
 
         RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservableThatThrowsException();
-        Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
+        Observable<Integer> integerObservable = integerRemoteObservable.getLocalObservable();
 
         expectingClose = false;
         eventsReceived = 0;
@@ -361,7 +350,7 @@ public class RemoteObservableTest {
 
         eventsReceived = 0;
 
-        Subscription subscription2 = integerRemoteObservable.getObservable().subscribe(new Action1<Integer>() {
+        Subscription subscription2 = integerRemoteObservable.getLocalObservable().subscribe(new Action1<Integer>() {
             int expected = 1;
 
             @Override
@@ -397,7 +386,7 @@ public class RemoteObservableTest {
     @Test
     public void testRemoterObservable() throws Exception {
         RemoteObservable<IEcho> remoteObservable = sampleService.getRemoterObservable();
-        Observable<IEcho> observable = remoteObservable.getObservable();
+        Observable<IEcho> observable = remoteObservable.getLocalObservable();
 
         expectingClose = false;
         eventsReceived = 0;
@@ -430,7 +419,7 @@ public class RemoteObservableTest {
     @Test
     public void testGenericRemoterObservable() throws Exception {
         RemoteObservable<IGen<String>> remoteObservable = sampleService.getGenericRemoterObservable();
-        Observable<IGen<String>> observable = remoteObservable.getObservable();
+        Observable<IGen<String>> observable = remoteObservable.getLocalObservable();
 
         expectingClose = false;
         eventsReceived = 0;

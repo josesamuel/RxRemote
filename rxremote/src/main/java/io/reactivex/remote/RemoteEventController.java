@@ -260,16 +260,18 @@ public class RemoteEventController<T> {
                 this.listener = listener;
                 if (!completed) {
                     RemoteEventController.this.onSubscribed();
-                    deathRecipient = new IBinder.DeathRecipient() {
-                        @Override
-                        public void binderDied() {
-                            if (DEBUG) {
-                                Log.v(TAG, "Binder dead");
+                    if (listener instanceof RemoteEventListener_Proxy) {
+                        deathRecipient = new IBinder.DeathRecipient() {
+                            @Override
+                            public void binderDied() {
+                                if (DEBUG) {
+                                    Log.v(TAG, "Binder dead");
+                                }
+                                unsubscribe();
                             }
-                            unsubscribe();
-                        }
-                    };
-                    ((RemoteEventListener_Proxy) listener).linkToDeath(deathRecipient);
+                        };
+                        ((RemoteEventListener_Proxy) listener).linkToDeath(deathRecipient);
+                    }
                 }
                 if (lastEvent != null) {
                     sendEventToObservable(lastEvent, dataType);
@@ -289,7 +291,9 @@ public class RemoteEventController<T> {
                     Log.v(TAG, "on unsubscribe" + lastEvent);
                 }
                 RemoteEventController.this.onUnSubscribed();
-                ((RemoteEventListener_Proxy) listener).unLinkToDeath(deathRecipient);
+                if (listener instanceof RemoteEventListener_Proxy) {
+                    ((RemoteEventListener_Proxy) listener).unLinkToDeath(deathRecipient);
+                }
                 listener = null;
                 deathRecipient = null;
             }
