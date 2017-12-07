@@ -19,6 +19,7 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.schedulers.Schedulers;
+import util.remoter.aidlservice.EchoImpl;
 import util.remoter.aidlservice.LocalSampleService;
 import util.remoter.aidlservice.ServiceIntents;
 import util.remoter.aidlservice.TestActivity;
@@ -26,6 +27,7 @@ import util.remoter.service.CustomData;
 import util.remoter.service.ExtendedCustomData;
 import util.remoter.service.FooParcelable;
 import util.remoter.service.IEcho;
+import util.remoter.service.IEcho_Proxy;
 import util.remoter.service.IGen;
 import util.remoter.service.ISampleService;
 
@@ -395,6 +397,8 @@ public class LocalObservableTest {
             @Override
             public void call(IEcho data) {
                 Assert.assertFalse(expectingClose);
+                Assert.assertFalse(data instanceof IEcho_Proxy);
+                Assert.assertTrue(data instanceof EchoImpl);
                 eventsReceived++;
                 Log.v(TAG, "Remoter data " + data + " " + data.echo("Hello"));
                 Assert.assertEquals("1", data.echo("1"));

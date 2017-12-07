@@ -9,6 +9,7 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import io.reactivex.remote.internal.LocalEventListener;
 import io.reactivex.remote.internal.RemoteDataType;
 import io.reactivex.remote.internal.RemoteEventListener;
 import io.reactivex.remote.internal.RemoteEventListener_Proxy;
@@ -310,48 +311,52 @@ public class RemoteEventController<T> {
                 }
 
                 if (this.listener != null) {
-                    Bundle remoteData = new Bundle();
-                    remoteData.putString(RemoteEventManager.REMOTE_DATA_TYPE, dataType.name());
-                    switch (dataType) {
-                        case Parcelable:
-                            remoteData.putParcelable(RemoteEventManager.REMOTE_DATA_KEY, (Parcelable) data);
-                            break;
-                        case Parceler:
-                            writeParceler(data, remoteData);
-                            break;
-                        case Remoter:
-                            writeRemoter(data, remoteData);
-                            break;
-                        case Byte:
-                            remoteData.putByte(RemoteEventManager.REMOTE_DATA_KEY, (Byte) data);
-                            break;
-                        case Short:
-                            remoteData.putShort(RemoteEventManager.REMOTE_DATA_KEY, (Short) data);
-                            break;
-                        case Integer:
-                            remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY, (Integer) data);
-                            break;
-                        case Float:
-                            remoteData.putFloat(RemoteEventManager.REMOTE_DATA_KEY, (Float) data);
-                            break;
-                        case Double:
-                            remoteData.putDouble(RemoteEventManager.REMOTE_DATA_KEY, (Double) data);
-                            break;
-                        case String:
-                            remoteData.putString(RemoteEventManager.REMOTE_DATA_KEY, (String) data);
-                            break;
-                        case Char:
-                            remoteData.putChar(RemoteEventManager.REMOTE_DATA_KEY, (Character) data);
-                            break;
-                        case Long:
-                            remoteData.putLong(RemoteEventManager.REMOTE_DATA_KEY, (Long) data);
-                            break;
-                        case Boolean:
-                            remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY, ((Boolean) data).booleanValue() ? 1 : 0);
-                            break;
+                    if (listener instanceof LocalEventListener) {
+                        ((LocalEventListener)listener).onLocalEvent(data);
+                    } else {
+                        Bundle remoteData = new Bundle();
+                        remoteData.putString(RemoteEventManager.REMOTE_DATA_TYPE, dataType.name());
+                        switch (dataType) {
+                            case Parcelable:
+                                remoteData.putParcelable(RemoteEventManager.REMOTE_DATA_KEY, (Parcelable) data);
+                                break;
+                            case Parceler:
+                                writeParceler(data, remoteData);
+                                break;
+                            case Remoter:
+                                writeRemoter(data, remoteData);
+                                break;
+                            case Byte:
+                                remoteData.putByte(RemoteEventManager.REMOTE_DATA_KEY, (Byte) data);
+                                break;
+                            case Short:
+                                remoteData.putShort(RemoteEventManager.REMOTE_DATA_KEY, (Short) data);
+                                break;
+                            case Integer:
+                                remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY, (Integer) data);
+                                break;
+                            case Float:
+                                remoteData.putFloat(RemoteEventManager.REMOTE_DATA_KEY, (Float) data);
+                                break;
+                            case Double:
+                                remoteData.putDouble(RemoteEventManager.REMOTE_DATA_KEY, (Double) data);
+                                break;
+                            case String:
+                                remoteData.putString(RemoteEventManager.REMOTE_DATA_KEY, (String) data);
+                                break;
+                            case Char:
+                                remoteData.putChar(RemoteEventManager.REMOTE_DATA_KEY, (Character) data);
+                                break;
+                            case Long:
+                                remoteData.putLong(RemoteEventManager.REMOTE_DATA_KEY, (Long) data);
+                                break;
+                            case Boolean:
+                                remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY, ((Boolean) data).booleanValue() ? 1 : 0);
+                                break;
 
+                        }
+                        listener.onRemoteEvent(remoteData);
                     }
-                    listener.onRemoteEvent(remoteData);
                 }
             } catch (Exception ex) {
                 if (!completed) {

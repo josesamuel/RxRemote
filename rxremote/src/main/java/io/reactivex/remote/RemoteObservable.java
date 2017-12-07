@@ -10,6 +10,7 @@ import android.util.Log;
 import java.lang.reflect.Constructor;
 import java.util.concurrent.Callable;
 
+import io.reactivex.remote.internal.LocalEventListener;
 import io.reactivex.remote.internal.RemoteDataType;
 import io.reactivex.remote.internal.RemoteEventListener;
 import io.reactivex.remote.internal.RemoteEventManager;
@@ -237,7 +238,14 @@ public class RemoteObservable<T> implements Parcelable {
                         Log.v(TAG, "onFirst subscribe ");
                     }
 
-                    remoteEventListener = new RemoteEventListener() {
+                    remoteEventListener = new LocalEventListener() {
+
+                        @Override
+                        public void onLocalEvent(Object localData) {
+                            T data = (T) localData;
+                            localSubject.onNext(data);
+                        }
+
                         @Override
                         public void onRemoteEvent(Bundle remoteData) {
                             remoteData.setClassLoader(this.getClass().getClassLoader());
