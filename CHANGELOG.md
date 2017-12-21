@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+Version 1.0.12 *(2017-12-20)*
+----------------------------
+Added support for List types
+
 Version 1.0.10 *(2017-12-04)*
 ----------------------------
 Added support to get observable from local RemoteObservable

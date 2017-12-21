@@ -8,6 +8,8 @@ import android.os.Parcelable;
 import android.util.Log;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import io.reactivex.remote.internal.LocalEventListener;
@@ -172,10 +174,11 @@ public class RemoteObservable<T> implements Parcelable {
 
                     remoteEventListener = new RemoteEventListener() {
                         @Override
+                        @SuppressWarnings("unchecked")
                         public void onRemoteEvent(Bundle remoteData) {
                             remoteData.setClassLoader(this.getClass().getClassLoader());
                             RemoteDataType dataType = RemoteDataType.valueOf(remoteData.getString(RemoteEventManager.REMOTE_DATA_TYPE));
-                            T data = getData(remoteData, dataType);
+                            T data = (T) getData(remoteData, dataType, "");
                             if (DEBUG) {
                                 Log.v(TAG, "onData " + data);
                             }
@@ -241,16 +244,18 @@ public class RemoteObservable<T> implements Parcelable {
                     remoteEventListener = new LocalEventListener() {
 
                         @Override
+                        @SuppressWarnings("unchecked")
                         public void onLocalEvent(Object localData) {
                             T data = (T) localData;
                             localSubject.onNext(data);
                         }
 
                         @Override
+                        @SuppressWarnings("unchecked")
                         public void onRemoteEvent(Bundle remoteData) {
                             remoteData.setClassLoader(this.getClass().getClassLoader());
                             RemoteDataType dataType = RemoteDataType.valueOf(remoteData.getString(RemoteEventManager.REMOTE_DATA_TYPE));
-                            T data = getData(remoteData, dataType);
+                            T data = (T) getData(remoteData, dataType, "");
                             if (DEBUG) {
                                 Log.v(TAG, "onData " + data);
                             }
@@ -299,35 +304,37 @@ public class RemoteObservable<T> implements Parcelable {
      * Reads and returns the correct type of data from the bundle
      */
     @SuppressWarnings("unchecked")
-    private T getData(Bundle remoteData, RemoteDataType dataType) {
+    private Object getData(Bundle remoteData, RemoteDataType dataType, String keyPrefix) {
         if (DEBUG) {
             Log.v(TAG, "Parsing datatype " + dataType);
         }
         switch (dataType) {
             case Parcelable:
-                return (T) remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Double:
-                return (T) (Double) remoteData.getDouble(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getDouble(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Float:
-                return (T) (Float) remoteData.getFloat(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getFloat(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Integer:
-                return (T) (Integer) remoteData.getInt(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getInt(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Long:
-                return (T) (Long) remoteData.getLong(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getLong(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Byte:
-                return (T) (Byte) remoteData.getByte(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getByte(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Char:
-                return (T) (Character) remoteData.getChar(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getChar(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Short:
-                return (T) (Short) remoteData.getShort(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getShort(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case String:
-                return (T) remoteData.getString(RemoteEventManager.REMOTE_DATA_KEY);
+                return remoteData.getString(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             case Boolean:
-                return (T) (Boolean) (remoteData.getInt(RemoteEventManager.REMOTE_DATA_KEY) == 1);
+                return (remoteData.getInt(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix) == 1);
             case Parceler:
-                return getParcelerData(remoteData);
+                return getParcelerData(remoteData, keyPrefix);
             case Remoter:
-                return getRemoterData(remoteData);
+                return getRemoterData(remoteData, keyPrefix);
+            case List:
+                return getListData(remoteData, keyPrefix);
 
         }
         return null;
@@ -337,9 +344,9 @@ public class RemoteObservable<T> implements Parcelable {
      * Reads and returns the parceler data from bundle
      */
     @SuppressWarnings("unchecked")
-    private T getParcelerData(Bundle remoteData) {
+    private T getParcelerData(Bundle remoteData, String keyPrefix) {
         try {
-            Object parcelerObject = remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY);
+            Object parcelerObject = remoteData.getParcelable(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix);
             return (T) parcelerObject.getClass().getMethod("getParcel", (Class[]) null).invoke(parcelerObject);
         } catch (Exception e) {
             if (DEBUG) {
@@ -353,17 +360,31 @@ public class RemoteObservable<T> implements Parcelable {
      * Reads and returns the parceler data from bundle
      */
     @SuppressWarnings("unchecked")
-    private T getRemoterData(Bundle remoteData) {
+    private T getRemoterData(Bundle remoteData, String keyPrefix) {
         try {
-            String remoterInterface = remoteData.getString(RemoteEventManager.REMOTE_DATA_EXTRA);
+            String remoterInterface = remoteData.getString(RemoteEventManager.REMOTE_DATA_EXTRA + keyPrefix);
             Class parcelClass = Class.forName(remoterInterface + "_Proxy");
             Constructor constructor = parcelClass.getConstructor(IBinder.class);
-            return (T) constructor.newInstance(remoteData.getBinder(RemoteEventManager.REMOTE_DATA_KEY));
+            return (T) constructor.newInstance(remoteData.getBinder(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix));
         } catch (Exception e) {
             if (DEBUG) {
                 Log.w(TAG, "Parcel exception ", e);
             }
         }
         return null;
+    }
+
+    /**
+     * Reads and returns the list data
+     */
+    @SuppressWarnings("unchecked")
+    private List getListData(Bundle remoteData, String keyPrefix) {
+        List list = new ArrayList();
+        int size = remoteData.getInt(RemoteEventManager.REMOTE_DATA_LIST_SIZE + keyPrefix, 0);
+        for (int i = 0; i < size; i++) {
+            RemoteDataType dataType = RemoteDataType.valueOf(remoteData.getString(RemoteEventManager.REMOTE_DATA_TYPE + keyPrefix + i));
+            list.add(getData(remoteData, dataType, keyPrefix + i));
+        }
+        return list;
     }
 }

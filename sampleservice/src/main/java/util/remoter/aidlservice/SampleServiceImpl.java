@@ -2,6 +2,9 @@ package util.remoter.aidlservice;
 
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.reactivex.remote.RemoteEventController;
 import io.reactivex.remote.RemoteObservable;
 import util.remoter.service.CustomData;
@@ -227,4 +230,30 @@ public class SampleServiceImpl implements ISampleService {
             }
         });
     }
+
+    @Override
+    public RemoteObservable<List<String>> getRemoterObservableOfListOfStrings() {
+        List<String> data = new ArrayList<>();
+        data.add("1");
+        data.add("2");
+        RemoteEventController<List<String>> controller = new RemoteEventController<List<String>>();
+        controller.setDebug(true);
+        controller.sendEvent(data);
+        controller.sendCompleted();
+        return new RemoteObservable<>(controller);
+    }
+
+    @Override
+    public RemoteObservable<List<CustomData>> getRemoterObservableOfListOfParceler() {
+        List<CustomData> data = new ArrayList<>();
+        data.add(new CustomData(1));
+        data.add(new ExtendedCustomData2(2));
+        RemoteEventController<List<CustomData>> controller = new RemoteEventController<List<CustomData>>();
+        controller.setDebug(true);
+        controller.sendEvent(data);
+        controller.sendCompleted();
+        return new RemoteObservable<>(controller);
+
+    }
+
 }

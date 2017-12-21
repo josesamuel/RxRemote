@@ -461,5 +461,80 @@ public class RemoteObservableTest {
     }
 
 
+    @Test
+    public void testListOfStrings() throws Exception {
+        RemoteObservable<List<String>> remoteObservable = sampleService.getRemoterObservableOfListOfStrings();
+        Observable<List<String>> observable = remoteObservable.getObservable();
+
+        expectingClose = false;
+        eventsReceived = 0;
+        Subscription subscription1 = observable.subscribe(new Action1<List<String>>() {
+
+            @Override
+            public void call(List<String> data) {
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Log.v(TAG, "List<String> data " + data );
+                Assert.assertNotNull(data);
+                Assert.assertEquals(2, data.size());
+                for (int i = 1; i <= 2; i++) {
+                    Assert.assertEquals(String.valueOf(i), data.get(i - 1));
+                }
+                expectingClose = true;
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.fail("Unexpected observable exception");
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "List data onComplete");
+                Assert.assertTrue(expectingClose);
+            }
+        });
+        Thread.sleep(3000);
+        Assert.assertEquals(1, eventsReceived);
+    }
+
+    @Test
+    public void testListOfParceler() throws Exception {
+        RemoteObservable<List<CustomData>> remoteObservable = sampleService.getRemoterObservableOfListOfParceler();
+        remoteObservable.setDebug(true);
+        Observable<List<CustomData>> observable = remoteObservable.getObservable();
+
+        expectingClose = false;
+        eventsReceived = 0;
+        Subscription subscription1 = observable.subscribe(new Action1<List<CustomData>>() {
+
+            @Override
+            public void call(List<CustomData> data) {
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Log.v(TAG, "List<CustomData> data " + data );
+                Assert.assertNotNull(data);
+                Assert.assertEquals(2, data.size());
+                for (int i = 1; i <= 2; i++) {
+                    Assert.assertEquals(i, data.get(i - 1).getData());
+                }
+                expectingClose = true;
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.fail("Unexpected observable exception");
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "List data onComplete");
+                Assert.assertTrue(expectingClose);
+            }
+        });
+        Thread.sleep(3000);
+        Assert.assertEquals(1, eventsReceived);
+    }
+
 }
 

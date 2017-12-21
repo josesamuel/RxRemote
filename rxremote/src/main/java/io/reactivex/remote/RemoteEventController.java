@@ -117,7 +117,7 @@ public class RemoteEventController<T> {
     /**
      * Returns what type of data this is
      */
-    private RemoteDataType getDataType(T data) {
+    private RemoteDataType getDataType(Object data) {
         if (data != null) {
             if (lastDataTypeClass == data.getClass()) {
                 return lastDataType;
@@ -134,7 +134,7 @@ public class RemoteEventController<T> {
     /**
      * Finds the type of data
      */
-    private RemoteDataType findDataType(T data) {
+    private RemoteDataType findDataType(Object data) {
         if (data instanceof Byte) {
             return RemoteDataType.Byte;
         }
@@ -162,6 +162,9 @@ public class RemoteEventController<T> {
         if (data instanceof Boolean) {
             return RemoteDataType.Boolean;
         }
+        if (data instanceof List) {
+            return RemoteDataType.List;
+        }
         if (data instanceof Parcelable) {
             return RemoteDataType.Parcelable;
         } else if (getParcelerClass(data) != null) {
@@ -177,27 +180,27 @@ public class RemoteEventController<T> {
     /**
      * Writes the @Parcel data
      */
-    private void writeParceler(T data, Bundle bundle) throws Exception {
+    private void writeParceler(Object data, Bundle bundle, String keyPrefix) throws Exception {
         Class parcelerClass = getParcelerClass(data);
         if (parcelerClass != null) {
             Class parcelClass = Class.forName(parcelerClass.getName() + "$$Parcelable");
             Constructor constructor = parcelClass.getConstructor(parcelerClass);
             Parcelable parcelable = (Parcelable) constructor.newInstance(data);
-            bundle.putParcelable(RemoteEventManager.REMOTE_DATA_KEY, parcelable);
+            bundle.putParcelable(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, parcelable);
         }
     }
 
     /**
      * Writes the @Remoter data
      */
-    private void writeRemoter(T data, Bundle bundle) throws Exception {
+    private void writeRemoter(Object data, Bundle bundle, String keyPrefix) throws Exception {
         Class remoterInterfaceClass = getRemoterBinder(data);
         if (remoterInterfaceClass != null) {
             Class remoterStubClass = Class.forName(remoterInterfaceClass.getName() + "_Stub");
             Constructor constructor = remoterStubClass.getConstructor(remoterInterfaceClass);
             IBinder binder = (IBinder) constructor.newInstance(data);
-            bundle.putString(RemoteEventManager.REMOTE_DATA_EXTRA, remoterInterfaceClass.getName());
-            bundle.putBinder(RemoteEventManager.REMOTE_DATA_KEY, binder);
+            bundle.putString(RemoteEventManager.REMOTE_DATA_EXTRA + keyPrefix, remoterInterfaceClass.getName());
+            bundle.putBinder(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, binder);
         }
     }
 
@@ -312,49 +315,10 @@ public class RemoteEventController<T> {
 
                 if (this.listener != null) {
                     if (listener instanceof LocalEventListener) {
-                        ((LocalEventListener)listener).onLocalEvent(data);
+                        ((LocalEventListener) listener).onLocalEvent(data);
                     } else {
                         Bundle remoteData = new Bundle();
-                        remoteData.putString(RemoteEventManager.REMOTE_DATA_TYPE, dataType.name());
-                        switch (dataType) {
-                            case Parcelable:
-                                remoteData.putParcelable(RemoteEventManager.REMOTE_DATA_KEY, (Parcelable) data);
-                                break;
-                            case Parceler:
-                                writeParceler(data, remoteData);
-                                break;
-                            case Remoter:
-                                writeRemoter(data, remoteData);
-                                break;
-                            case Byte:
-                                remoteData.putByte(RemoteEventManager.REMOTE_DATA_KEY, (Byte) data);
-                                break;
-                            case Short:
-                                remoteData.putShort(RemoteEventManager.REMOTE_DATA_KEY, (Short) data);
-                                break;
-                            case Integer:
-                                remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY, (Integer) data);
-                                break;
-                            case Float:
-                                remoteData.putFloat(RemoteEventManager.REMOTE_DATA_KEY, (Float) data);
-                                break;
-                            case Double:
-                                remoteData.putDouble(RemoteEventManager.REMOTE_DATA_KEY, (Double) data);
-                                break;
-                            case String:
-                                remoteData.putString(RemoteEventManager.REMOTE_DATA_KEY, (String) data);
-                                break;
-                            case Char:
-                                remoteData.putChar(RemoteEventManager.REMOTE_DATA_KEY, (Character) data);
-                                break;
-                            case Long:
-                                remoteData.putLong(RemoteEventManager.REMOTE_DATA_KEY, (Long) data);
-                                break;
-                            case Boolean:
-                                remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY, ((Boolean) data).booleanValue() ? 1 : 0);
-                                break;
-
-                        }
+                        addDataToBundle(remoteData, data, dataType, "");
                         listener.onRemoteEvent(remoteData);
                     }
                 }
@@ -363,6 +327,66 @@ public class RemoteEventController<T> {
                     completed = true;
                     onUnSubscribed();
                 }
+            }
+        }
+
+        private void addDataToBundle(Bundle remoteData, Object data, RemoteDataType dataType, String keyPrefix) throws Exception {
+            remoteData.putString(RemoteEventManager.REMOTE_DATA_TYPE + keyPrefix, dataType.name());
+            switch (dataType) {
+                case List:
+                    List listData = (List) data;
+                    int dataSize = listData != null ? listData.size() : 0;
+                    remoteData.putInt(RemoteEventManager.REMOTE_DATA_LIST_SIZE + keyPrefix, dataSize);
+                    RemoteDataType itemDataType = null;
+                    for (int i = 0; i < dataSize; i++) {
+                        Object item = listData.get(i);
+                        if (itemDataType == null) {
+                            itemDataType = findDataType(item);
+                        }
+                        addDataToBundle(remoteData, item, itemDataType, keyPrefix + i);
+                    }
+                    break;
+
+                case Parcelable:
+                    remoteData.putParcelable(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Parcelable) data);
+                    break;
+                case Parceler:
+                    writeParceler(data, remoteData, keyPrefix);
+                    break;
+                case Remoter:
+                    writeRemoter(data, remoteData, keyPrefix);
+                    break;
+                case Byte:
+                    remoteData.putByte(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Byte) data);
+                    break;
+                case Short:
+                    remoteData.putShort(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Short) data);
+                    break;
+                case Integer:
+                    remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Integer) data);
+                    break;
+                case Float:
+                    remoteData.putFloat(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Float) data);
+                    break;
+                case Double:
+                    remoteData.putDouble(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Double) data);
+                    break;
+                case String:
+                    remoteData.putString(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (String) data);
+                    break;
+                case Char:
+                    remoteData.putChar(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Character) data);
+                    break;
+                case Long:
+                    remoteData.putLong(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, (Long) data);
+                    break;
+                case Boolean:
+                    remoteData.putInt(RemoteEventManager.REMOTE_DATA_KEY + keyPrefix, ((Boolean) data).booleanValue() ? 1 : 0);
+                    break;
+                case UnKnown:
+                    Log.w(TAG, "Ignoring unsupported type " + data);
+                    break;
+
             }
         }
 

@@ -1,5 +1,7 @@
 package util.remoter.service;
 
+import java.util.List;
+
 import io.reactivex.remote.RemoteObservable;
 import remoter.annotations.Remoter;
 
@@ -23,4 +25,8 @@ public interface ISampleService {
     RemoteObservable<IEcho> getRemoterObservable();
 
     RemoteObservable<IGen<String>> getGenericRemoterObservable();
+
+    RemoteObservable<List<String>> getRemoterObservableOfListOfStrings();
+
+    RemoteObservable<List<CustomData>> getRemoterObservableOfListOfParceler();
 }
