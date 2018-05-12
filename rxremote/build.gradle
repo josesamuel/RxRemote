@@ -22,7 +22,7 @@ android {
 }
 
 dependencies {
-  api deps.rx
+  implementation deps.rx
 }
 
 

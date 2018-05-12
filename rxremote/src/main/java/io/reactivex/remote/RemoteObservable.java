@@ -27,6 +27,9 @@ import rx.Observable;
  * This is a {@link Parcelable} which can be passed through remote service
  * aidl or <a href=\"https://bit.ly/Remoter\">Remoter</a> interfaces
  * and then get an {@link Observable} from this class at the client side.
+ * <p>
+ * {@link RemoteObservable} can be created from either an {@link Observable} using {@link #RemoteObservable(Observable)}
+ * or {@link RemoteEventController} using {@link #RemoteObservable(RemoteEventController)}
  *
  * @param <T> Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
  *            {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
@@ -65,6 +68,16 @@ public class RemoteObservable<T> implements Parcelable {
     public RemoteObservable(RemoteEventController<T> remoteController) {
         this.remoteEventController = remoteController;
         this.remoteEventBinder = new RemoteEventManager_Stub(remoteController.getRemoteEventManager());
+    }
+
+    /**
+     * Initialize at the service side  with an {@link Observable<T>}
+     *
+     * @param sourceObservable {@link Observable<T>} whose data needs to be delivered remotely
+     */
+    public RemoteObservable(Observable<T> sourceObservable) {
+        this.remoteEventController = new RemoteEventController<>(sourceObservable);
+        this.remoteEventBinder = new RemoteEventManager_Stub(remoteEventController.getRemoteEventManager());
     }
 
     /**

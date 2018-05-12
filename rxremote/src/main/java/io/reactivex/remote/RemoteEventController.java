@@ -14,6 +14,10 @@ import io.reactivex.remote.internal.RemoteDataType;
 import io.reactivex.remote.internal.RemoteEventListener;
 import io.reactivex.remote.internal.RemoteEventListener_Proxy;
 import io.reactivex.remote.internal.RemoteEventManager;
+import rx.Observable;
+import rx.Subscription;
+import rx.functions.Action0;
+import rx.functions.Action1;
 
 /**
  * Use this class to send the data at the server side that needs to
@@ -41,6 +45,24 @@ public class RemoteEventController<T> {
     private RemoteEventHandler remoteEventHandler = new RemoteEventHandler();
     private Class lastDataTypeClass;
     private RemoteDataType lastDataType;
+    private Observable<T> sourceObservable;
+    private Subscription sourceSubscription;
+
+
+    /**
+     * Create a default instance of {@link RemoteEventController}
+     * Use {@link #sendEvent(Object)}, {@link #sendCompleted()}  to send the data
+     */
+    public RemoteEventController(){
+    }
+
+    /**
+     * Creates an instance of {@link RemoteEventController} with the given {@link Observable}
+     * @param observable The {@link Observable} to listen to
+     */
+    public RemoteEventController(Observable<T> observable){
+        this.sourceObservable = observable;
+    }
 
 
     public RemoteEventManager getRemoteEventManager() {
@@ -96,14 +118,34 @@ public class RemoteEventController<T> {
      * Override this to know when <b>first</b> client subscribed to the observable
      */
     public void onSubscribed() {
-
+        if (sourceObservable != null) {
+            sourceSubscription = sourceObservable.subscribe(new Action1<T>() {
+                @Override
+                public void call(T t) {
+                    sendEvent(t);
+                }
+            }, new Action1<Throwable>() {
+                @Override
+                public void call(Throwable throwable) {
+                    sendError(new Exception(throwable));
+                }
+            }, new Action0() {
+                @Override
+                public void call() {
+                    sendCompleted();
+                }
+            });
+        }
     }
 
     /**
      * Override this to know when <b>ALL</b> clients have unsubscribed.
      */
     public void onUnSubscribed() {
-
+        if (sourceSubscription != null) {
+            sourceSubscription.unsubscribe();
+            sourceSubscription = null;
+        }
     }
 
     /**

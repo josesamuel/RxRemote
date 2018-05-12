@@ -312,6 +312,52 @@ public class LocalObservableTest {
         subscription2.unsubscribe();
     }
 
+    @Test
+    public void testIntObservableFromRxObservable() throws Exception {
+        RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservableCreatedFromRxObservable();
+        Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
+        intObservableFromObservableTest(integerObservable);
+
+        intObservableFromObservableTest(sampleService.getIntObservableCreatedFromRxObservable().getObservable());
+    }
+
+    private void intObservableFromObservableTest(Observable<Integer> observable) throws Exception {
+        expectingClose = false;
+        eventsReceived = 0;
+        Subscription subscription1 = observable.subscribe(new Action1<Integer>() {
+            int expected = 1;
+
+            @Override
+            public void call(Integer data) {
+                Log.v(TAG, "Int data " + data.intValue());
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Assert.assertEquals(expected, data.intValue());
+                expected ++;
+                if(expected == 4) {
+                    expectingClose = true;
+                }
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Assert.fail("Unexpected observable exception");
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "Int data onComplete");
+                Assert.assertTrue(expectingClose);
+            }
+        });
+        Thread.sleep(5000);
+        Assert.assertEquals(3, eventsReceived);
+
+
+        Assert.assertTrue(expectingClose);
+        subscription1.unsubscribe();
+    }
+
 
     @Test
     public void intObservableThatThrowsExceptionTest() throws Exception {

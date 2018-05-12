@@ -29,4 +29,8 @@ public interface ISampleService {
     RemoteObservable<List<String>> getRemoterObservableOfListOfStrings();
 
     RemoteObservable<List<CustomData>> getRemoterObservableOfListOfParceler();
+
+
+    RemoteObservable<Integer> getIntObservableCreatedFromRxObservable();
+
 }

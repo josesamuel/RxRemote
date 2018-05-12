@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+Version 1.0.13 *(2018-4-11)*
+----------------------------
+Create a RemoteObservable from a local source Observable
+
+
 Version 1.0.12 *(2017-12-20)*
 ----------------------------
 Added support for List types

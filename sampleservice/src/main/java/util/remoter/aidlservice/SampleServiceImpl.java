@@ -7,6 +7,8 @@ import java.util.List;
 
 import io.reactivex.remote.RemoteEventController;
 import io.reactivex.remote.RemoteObservable;
+import rx.functions.Action0;
+import rx.subjects.PublishSubject;
 import util.remoter.service.CustomData;
 import util.remoter.service.ExtendedCustomData;
 import util.remoter.service.ExtendedCustomData2;
@@ -253,6 +255,38 @@ public class SampleServiceImpl implements ISampleService {
         controller.sendEvent(data);
         controller.sendCompleted();
         return new RemoteObservable<>(controller);
+
+    }
+
+    @Override
+    public RemoteObservable<Integer> getIntObservableCreatedFromRxObservable() {
+        final PublishSubject<Integer> subject = PublishSubject.create();
+
+        return new RemoteObservable<>(subject.asObservable().doOnSubscribe(new Action0() {
+            @Override
+            public void call() {
+                Thread eventThread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(100);
+                            subject.onNext(1);
+                            Thread.sleep(100);
+                            subject.onNext(2);
+                            Thread.sleep(100);
+                            subject.onNext(3);
+
+                            Thread.sleep(100);
+                            subject.onCompleted();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+                eventThread.start();
+            }
+        }));
 
     }
 

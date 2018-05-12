@@ -30,11 +30,11 @@ dependencies {
     androidTestImplementation deps.support.test.rules
     implementation project(path: ':rxremote')
     //implementation 'com.josesamuel:rxremote:1.0.0'
-    api 'io.reactivex:rxjava:1.2.3'
-    api 'org.parceler:parceler-api:1.1.9'
+    implementation 'io.reactivex:rxjava:1.2.3'
+    implementation 'org.parceler:parceler-api:1.1.9'
     annotationProcessor 'org.parceler:parceler:1.1.9'
 
-    api 'com.josesamuel:remoter-annotations:1.1.4'
-    annotationProcessor 'com.josesamuel:remoter:1.1.4'
+    implementation 'com.josesamuel:remoter-annotations:1.1.5'
+    annotationProcessor 'com.josesamuel:remoter:1.1.5'
 
 }

@@ -30,4 +30,6 @@ public interface ISampleService {
 
     RemoteObservable<List<CustomData>> getRemoterObservableOfListOfParceler();
 
+    RemoteObservable<Integer> getIntObservableCreatedFromRxObservable();
+
 }
