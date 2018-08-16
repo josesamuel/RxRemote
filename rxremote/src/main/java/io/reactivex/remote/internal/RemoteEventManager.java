@@ -15,4 +15,6 @@ public interface RemoteEventManager {
     void subscribe(RemoteEventListener listener);
 
     void unsubscribe();
+
+    void close();
 }

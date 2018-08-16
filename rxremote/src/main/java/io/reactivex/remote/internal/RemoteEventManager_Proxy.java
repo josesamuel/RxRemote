@@ -16,6 +16,8 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
 
     private static final int TRANSACTION_unsubscribe_1 = android.os.IBinder.FIRST_CALL_TRANSACTION + 1;
 
+    private static final int TRANSACTION_close_2 = android.os.IBinder.FIRST_CALL_TRANSACTION + 2;
+
     private IBinder mRemote;
 
     /**
@@ -28,33 +30,55 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
     }
 
     @Override
+    public void close() {
+        if (mRemote != null) {
+            android.os.Parcel data = android.os.Parcel.obtain();
+            android.os.Parcel reply = android.os.Parcel.obtain();
+            try {
+                data.writeInterfaceToken(DESCRIPTOR);
+                mRemote.transact(TRANSACTION_close_2, data, reply, android.os.IBinder.FLAG_ONEWAY);
+            } catch (RemoteException re) {
+                throw new RuntimeException(re);
+            } finally {
+                reply.recycle();
+                data.recycle();
+            }
+        }
+        mRemote = null;
+    }
+
+    @Override
     public void subscribe(RemoteEventListener listener) {
-        android.os.Parcel data = android.os.Parcel.obtain();
-        android.os.Parcel reply = android.os.Parcel.obtain();
-        try {
-            data.writeInterfaceToken(DESCRIPTOR);
-            data.writeStrongBinder(new RemoteEventListener_Stub(listener));
-            mRemote.transact(TRANSACTION_subscribe_0, data, reply, android.os.IBinder.FLAG_ONEWAY);
-        } catch (RemoteException re) {
-            throw new RuntimeException(re);
-        } finally {
-            reply.recycle();
-            data.recycle();
+        if (mRemote != null) {
+            android.os.Parcel data = android.os.Parcel.obtain();
+            android.os.Parcel reply = android.os.Parcel.obtain();
+            try {
+                data.writeInterfaceToken(DESCRIPTOR);
+                data.writeStrongBinder(new RemoteEventListener_Stub(listener));
+                mRemote.transact(TRANSACTION_subscribe_0, data, reply, android.os.IBinder.FLAG_ONEWAY);
+            } catch (RemoteException re) {
+                throw new RuntimeException(re);
+            } finally {
+                reply.recycle();
+                data.recycle();
+            }
         }
     }
 
     @Override
     public void unsubscribe() {
-        android.os.Parcel data = android.os.Parcel.obtain();
-        android.os.Parcel reply = android.os.Parcel.obtain();
-        try {
-            data.writeInterfaceToken(DESCRIPTOR);
-            mRemote.transact(TRANSACTION_unsubscribe_1, data, reply, android.os.IBinder.FLAG_ONEWAY);
-        } catch (RemoteException re) {
-            throw new RuntimeException(re);
-        } finally {
-            reply.recycle();
-            data.recycle();
+        if (mRemote != null) {
+            android.os.Parcel data = android.os.Parcel.obtain();
+            android.os.Parcel reply = android.os.Parcel.obtain();
+            try {
+                data.writeInterfaceToken(DESCRIPTOR);
+                mRemote.transact(TRANSACTION_unsubscribe_1, data, reply, android.os.IBinder.FLAG_ONEWAY);
+            } catch (RemoteException re) {
+                throw new RuntimeException(re);
+            } finally {
+                reply.recycle();
+                data.recycle();
+            }
         }
     }
 
@@ -63,9 +87,11 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
      * Register a {@link android.os.IBinder.DeathRecipient} to know of binder connection lose
      */
     public void linkToDeath(IBinder.DeathRecipient deathRecipient) {
-        try {
-            mRemote.linkToDeath(deathRecipient, 0);
-        } catch (Exception ignored) {
+        if (mRemote != null) {
+            try {
+                mRemote.linkToDeath(deathRecipient, 0);
+            } catch (Exception ignored) {
+            }
         }
     }
 
@@ -73,9 +99,11 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
      * UnRegister a {@link android.os.IBinder.DeathRecipient} to know of binder connection lose
      */
     public void unLinkToDeath(IBinder.DeathRecipient deathRecipient) {
-        try {
-            mRemote.unlinkToDeath(deathRecipient, 0);
-        } catch (Exception ignored) {
+        if (mRemote != null) {
+            try {
+                mRemote.unlinkToDeath(deathRecipient, 0);
+            } catch (Exception ignored) {
+            }
         }
     }
 

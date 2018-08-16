@@ -584,5 +584,45 @@ public class RemoteObservableTest {
         Assert.assertEquals(1, eventsReceived);
     }
 
+
+    @Test
+    public void testClose() throws Exception {
+        final RemoteObservable<Integer> remoteObservable = sampleService.getIntObservableForClose();
+        remoteObservable.setDebug(true);
+        Observable<Integer> observable = remoteObservable.getObservable();
+
+        expectingClose = false;
+        eventsReceived = 0;
+        observable.subscribe(new Action1<Integer>() {
+
+            @Override
+            public void call(Integer data) {
+                Assert.assertFalse(expectingClose);
+                eventsReceived++;
+                Log.v(TAG, "Int close data " + data );
+                Assert.assertNotNull(data);
+                Assert.assertEquals(1, data.intValue());
+                expectingClose = true;
+                remoteObservable.close();
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                Log.e(TAG, "Exception :", throwable);
+                Assert.fail("Unexpected observable exception");
+            }
+        }, new Action0() {
+            @Override
+            public void call() {
+                Log.v(TAG, "Int close data onComplete");
+                Assert.fail("Unexpected observable coplete");
+            }
+        });
+
+        Log.v(TAG, "Sleeping");
+        Thread.sleep(5000);
+        Log.v(TAG, "Out of sleep");
+        Assert.assertEquals(1, eventsReceived);
+    }
 }
 

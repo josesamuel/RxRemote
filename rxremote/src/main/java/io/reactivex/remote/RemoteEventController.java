@@ -149,6 +149,16 @@ public class RemoteEventController<T> {
     }
 
     /**
+     * Override this to know when the client closed the remote observable.
+     * Perform any cleanup here
+     */
+    public void onClosed() {
+        onUnSubscribed();
+        completed = true;
+        remoteEventHandler = null;
+    }
+
+    /**
      * Enable or disable debug prints. Disabled by default
      */
     public void setDebug(boolean enable) {
@@ -296,11 +306,31 @@ public class RemoteEventController<T> {
 
         private RemoteEventListener listener;
         private IBinder.DeathRecipient deathRecipient;
+        private boolean closed;
+
+        /**
+         * Close and cleanup
+         */
+        @Override
+        public void close() {
+            if (listener != null) {
+                if (deathRecipient != null) {
+                    ((RemoteEventListener_Proxy) listener).unLinkToDeath(deathRecipient);
+                }
+            }
+            this.listener = null;
+            this.deathRecipient = null;
+            this.closed = true;
+            onClosed();
+        }
 
         @Override
         public void subscribe(final RemoteEventListener listener) {
             if (DEBUG) {
-                Log.v(TAG, "onSubscribe " + completed + " " + lastEvent);
+                Log.v(TAG, "onSubscribe " + completed + " " + lastEvent +" Closed " + closed);
+            }
+            if (closed) {
+                return;
             }
             synchronized (LOCK) {
                 this.listener = listener;
@@ -332,6 +362,10 @@ public class RemoteEventController<T> {
 
         @Override
         public void unsubscribe() {
+            if (closed) {
+                return;
+            }
+
             if (listener != null) {
                 if (DEBUG) {
                     Log.v(TAG, "on unsubscribe" + lastEvent);
@@ -350,6 +384,10 @@ public class RemoteEventController<T> {
          * Sends the data to observable
          */
         void sendEventToObservable(T data, RemoteDataType dataType) {
+            if (closed) {
+                return;
+            }
+
             try {
                 if (DEBUG) {
                     Log.v(TAG, "Sending event" + listener + " " + data);
@@ -436,6 +474,10 @@ public class RemoteEventController<T> {
          * Send oncompleted
          */
         void sendOnCompleted() {
+            if (closed) {
+                return;
+            }
+
             try {
                 if (DEBUG) {
                     Log.v(TAG, "Sending complete" + listener);
@@ -457,6 +499,10 @@ public class RemoteEventController<T> {
          * Send oncompleted
          */
         void sendOnError(Exception exception) {
+            if (closed) {
+                return;
+            }
+
             try {
                 if (DEBUG) {
                     Log.v(TAG, "Sending onError" + listener);

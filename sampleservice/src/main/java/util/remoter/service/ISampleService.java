@@ -33,4 +33,6 @@ public interface ISampleService {
 
     RemoteObservable<Integer> getIntObservableCreatedFromRxObservable();
 
+    RemoteObservable<Integer> getIntObservableForClose();
+
 }

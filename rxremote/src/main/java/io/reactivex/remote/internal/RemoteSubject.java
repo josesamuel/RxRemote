@@ -20,6 +20,7 @@ import rx.subjects.Subject;
 public class RemoteSubject<T> extends Subject<T, T> {
 
     final PublishSubjectState<T> state;
+    private boolean closed;
 
     /**
      * Creates an instance of remote subject
@@ -35,19 +36,29 @@ public class RemoteSubject<T> extends Subject<T, T> {
         onInit();
     }
 
+    public void close () {
+        closed = true;
+    }
+
     @Override
     public void onNext(T v) {
-        state.onNext(v);
+        if (!closed) {
+            state.onNext(v);
+        }
     }
 
     @Override
     public void onError(Throwable e) {
-        state.onError(e);
+        if (!closed) {
+            state.onError(e);
+        }
     }
 
     @Override
     public void onCompleted() {
-        state.onCompleted();
+        if (!closed) {
+            state.onCompleted();
+        }
     }
 
 

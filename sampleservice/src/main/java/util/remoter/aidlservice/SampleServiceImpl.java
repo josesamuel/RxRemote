@@ -290,4 +290,54 @@ public class SampleServiceImpl implements ISampleService {
 
     }
 
+
+
+    public RemoteObservable<Integer> getIntObservableForClose(){
+        Log.d(TAG, "getIntObservableForClose");
+        RemoteEventController<Integer> controller = new RemoteEventController<Integer>(){
+            @Override
+            public void onSubscribed() {
+                super.onSubscribed();
+                Log.d(TAG, "OnSubscribed");
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.d(TAG, "Sending 1");
+                        sendEvent(1);
+                        try {
+                            Thread.sleep(1000L);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        Log.d(TAG, "Sending 2");
+                        sendEvent(2);
+                        try {
+                            Thread.sleep(1000L);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        Log.d(TAG, "Sending completed");
+                        sendCompleted();
+                    }
+                }).start();
+            }
+
+            @Override
+            public void onClosed() {
+                super.onClosed();
+                Log.d(TAG, "OnClosed");
+            }
+
+            @Override
+            public void onUnSubscribed() {
+                super.onUnSubscribed();
+                Log.d(TAG, "onUnSubscribed");
+            }
+        };
+        controller.setDebug(true);
+        return new RemoteObservable<>(controller);
+    }
+
+
+
 }

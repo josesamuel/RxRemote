@@ -57,6 +57,7 @@ public class RemoteObservable<T> implements Parcelable {
     private RemoteSubject<T> localSubject;
     private Callable<RemoteObservable<T>> reconnecter;
     private RemoteEventController<T> remoteEventController;
+    private boolean closed;
 
     //*************************************************************
 
@@ -101,6 +102,9 @@ public class RemoteObservable<T> implements Parcelable {
      * Returns an {@link Observable} which will receive the data send from the service side.
      */
     public Observable<T> getObservable() {
+        if (closed) {
+            throw new IllegalStateException("Already closed");
+        }
         return getRemoteSubject().asObservable();
     }
 
@@ -110,7 +114,31 @@ public class RemoteObservable<T> implements Parcelable {
      * @throws IllegalStateException if caled on a {@link RemoteObservable} that is not from a local service
      */
     public Observable<T> getLocalObservable() {
+        if (closed) {
+            throw new IllegalStateException("Already closed");
+        }
         return getLocalSubject().asObservable();
+    }
+
+    /**
+     * Close this {@link RemoteObservable}
+     * No further events will be delivered
+     */
+    public void close() {
+        if (!closed) {
+            if (remoteSubject != null) {
+                remoteSubject.close();
+            }
+            if (localSubject != null) {
+                localSubject.close();
+            }
+
+            remoteEventBinder = null;
+            remoteSubject = null;
+            localSubject = null;
+            remoteEventController = null;
+            closed = true;
+        }
     }
 
 
@@ -173,6 +201,16 @@ public class RemoteObservable<T> implements Parcelable {
                         }
                     }
                 };
+
+                @Override
+                public void close() {
+                    super.close();
+                    reconnecter = null;
+                    remoteEventManager.unLinkToDeath(deathRecipient);
+                    remoteEventManager.unsubscribe();
+                    remoteEventManager.close();
+                    remoteEventListener = null;
+                }
 
                 @Override
                 public void onInit() {
@@ -294,6 +332,16 @@ public class RemoteObservable<T> implements Parcelable {
                         localSubject.onCompleted();
                     }
                 }
+
+                @Override
+                public void close() {
+                    super.close();
+                    reconnecter = null;
+                    remoteEventManager.unsubscribe();
+                    remoteEventManager.close();
+                    remoteEventListener = null;
+                }
+
 
                 @Override
                 public void onAllUnsubscribe() {

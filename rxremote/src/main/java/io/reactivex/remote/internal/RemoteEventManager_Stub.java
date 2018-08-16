@@ -22,6 +22,9 @@ public class RemoteEventManager_Stub extends Binder {
 
     private static final int TRANSACTION_unsubscribe_1 = android.os.IBinder.FIRST_CALL_TRANSACTION + 1;
 
+    private static final int TRANSACTION_close_2 = android.os.IBinder.FIRST_CALL_TRANSACTION + 2;
+
+
     private RemoteEventManager serviceImpl;
 
     /**
@@ -59,6 +62,13 @@ public class RemoteEventManager_Stub extends Binder {
                     serviceImpl.unsubscribe();
                     return true;
                 }
+                case TRANSACTION_close_2: {
+                    data.enforceInterface(DESCRIPTOR);
+                    serviceImpl.close();
+                    return true;
+                }
+
+
             }
         } catch (Exception re) {
         }
