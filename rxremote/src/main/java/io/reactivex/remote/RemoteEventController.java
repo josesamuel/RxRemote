@@ -47,6 +47,7 @@ public class RemoteEventController<T> {
     private RemoteDataType lastDataType;
     private Observable<T> sourceObservable;
     private Subscription sourceSubscription;
+    private boolean ignoreIfDuplicateOfLast = false;
 
 
     /**
@@ -77,6 +78,14 @@ public class RemoteEventController<T> {
     public final void sendEvent(T data) {
         if (!completed) {
             synchronized (LOCK) {
+
+                if (ignoreIfDuplicateOfLast) {
+                    if (data == lastEvent || (data != null && data.equals(lastEvent))) {
+                        Log.w(TAG, "Ignoring, as it is same as last data " + data);
+                        return;
+                    }
+                }
+
                 RemoteDataType dType = getDataType(data);
                 if (dType != RemoteDataType.UnKnown) {
                     this.lastEvent = data;
@@ -165,6 +174,13 @@ public class RemoteEventController<T> {
         DEBUG = enable;
     }
 
+    /**
+     * If set, the {@link #sendEvent(Object)} wont be delivered if it is same as last event.
+     * Default false
+     */
+    public void setIgnoreIfDuplicateOfLast(boolean ignoreIfDuplicateOfLast) {
+        this.ignoreIfDuplicateOfLast = ignoreIfDuplicateOfLast;
+    }
 
     /**
      * Returns what type of data this is
