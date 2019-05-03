@@ -19,18 +19,25 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
 }
 
 dependencies {
     androidTestImplementation deps.junit
     androidTestImplementation deps.support.test.rules
-    implementation project(path: ':rxremote')
-    //implementation 'com.josesamuel:rxremote:1.0.0'
+    //implementation project(path: ':rxremote')
+    implementation 'com.josesamuel:rxremote:1.2.0'
 
     implementation 'io.reactivex:rxjava:1.2.3'
+
+    implementation 'com.josesamuel:remoter-annotations:1.2.0'
+    annotationProcessor 'com.josesamuel:remoter:1.2.0'
+
     implementation 'org.parceler:parceler-api:1.1.9'
     annotationProcessor 'org.parceler:parceler:1.1.9'
 
-    implementation 'com.josesamuel:remoter-annotations:1.1.5'
-    annotationProcessor 'com.josesamuel:remoter:1.1.5'
 }

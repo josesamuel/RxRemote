@@ -7,6 +7,8 @@ import java.util.List;
 
 import io.reactivex.remote.RemoteEventController;
 import io.reactivex.remote.RemoteObservable;
+import io.reactivex.remote.RemoteObservableListener;
+import rx.Observable;
 import rx.functions.Action0;
 import rx.subjects.PublishSubject;
 import util.remoter.service.CustomData;
@@ -26,6 +28,7 @@ public class SampleServiceImpl implements ISampleService {
     RemoteEventController<IGen<String>> genericRemoterDataEventController = new RemoteEventController<>();
 
     SampleServiceImpl() {
+        Log.v(TAG, "SampleServiceImpl Create");
         //to test clients will always receive the last data
         intDataEventController.sendEvent(7);
         intDataEventController.sendEvent(9);
@@ -259,7 +262,64 @@ public class SampleServiceImpl implements ISampleService {
     }
 
     @Override
+    public RemoteObservable<Integer> testForRemoteClose() {
+        final PublishSubject<Integer> subject = PublishSubject.create();
+        Log.v(TAG, "testForRemoteClose");
+        RemoteObservable<Integer> remoteObservable =  new RemoteObservable<>(subject.asObservable().doOnSubscribe(new Action0() {
+            @Override
+            public void call() {
+                Thread eventThread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            Thread.sleep(50);
+                            Log.v(TAG, "Sending 1");
+                            subject.onNext(1);
+                            Thread.sleep(1000);
+                            Log.v(TAG, "Sending 2");
+                            subject.onNext(2);
+                            Thread.sleep(1000);
+                            Log.v(TAG, "Sending 3");
+                            subject.onNext(3);
+
+                            Thread.sleep(1000);
+                            subject.onCompleted();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+                eventThread.start();
+            }
+        }).doOnUnsubscribe(() -> Log.v(TAG, " observable OnSubscribed"))
+
+        ).setRemoteObservableListener(new RemoteObservableListener() {
+            @Override
+            public void onSubscribed() {
+                Log.v(TAG, " service OnSubscribed");
+            }
+
+            @Override
+            public void onUnsubscribe() {
+                Log.v(TAG, "service  onUnsubscribe");
+            }
+
+            @Override
+            public void onClosed() {
+                Log.v(TAG, "service  onClosed");
+            }
+        });
+
+        remoteObservable.setDebug(true);
+        return remoteObservable;
+    }
+
+    @Override
     public RemoteObservable<Integer> getIntObservableCreatedFromRxObservable() {
+
+        Observable.from(new String[]{"Hello", "World"});
+
         final PublishSubject<Integer> subject = PublishSubject.create();
 
         return new RemoteObservable<>(subject.asObservable().doOnSubscribe(new Action0() {

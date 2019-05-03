@@ -7,7 +7,6 @@ import android.util.Log;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.reactivex.remote.internal.LocalEventListener;
 import io.reactivex.remote.internal.RemoteDataType;
@@ -48,26 +47,32 @@ public class RemoteEventController<T> {
     private Observable<T> sourceObservable;
     private Subscription sourceSubscription;
     private boolean ignoreIfDuplicateOfLast = false;
+    private RemoteObservableListener remoteObservableListener;
 
 
     /**
      * Create a default instance of {@link RemoteEventController}
      * Use {@link #sendEvent(Object)}, {@link #sendCompleted()}  to send the data
      */
-    public RemoteEventController(){
+    public RemoteEventController() {
     }
 
     /**
      * Creates an instance of {@link RemoteEventController} with the given {@link Observable}
+     *
      * @param observable The {@link Observable} to listen to
      */
-    public RemoteEventController(Observable<T> observable){
+    public RemoteEventController(Observable<T> observable) {
         this.sourceObservable = observable;
     }
 
 
     public RemoteEventManager getRemoteEventManager() {
         return remoteEventHandler;
+    }
+
+    public void setRemoteObservableListener(RemoteObservableListener remoteObservableListener) {
+        this.remoteObservableListener = remoteObservableListener;
     }
 
     /**
@@ -145,6 +150,10 @@ public class RemoteEventController<T> {
                 }
             });
         }
+
+        if (remoteObservableListener != null) {
+            remoteObservableListener.onSubscribed();
+        }
     }
 
     /**
@@ -155,6 +164,10 @@ public class RemoteEventController<T> {
             sourceSubscription.unsubscribe();
             sourceSubscription = null;
         }
+        if (remoteObservableListener != null) {
+            remoteObservableListener.onUnsubscribe();
+        }
+
     }
 
     /**
@@ -165,6 +178,9 @@ public class RemoteEventController<T> {
         onUnSubscribed();
         completed = true;
         remoteEventHandler = null;
+        if (remoteObservableListener != null) {
+            remoteObservableListener.onClosed();
+        }
     }
 
     /**
@@ -331,8 +347,9 @@ public class RemoteEventController<T> {
         public void close() {
             if (listener != null) {
                 if (deathRecipient != null) {
-                    ((RemoteEventListener_Proxy) listener).unLinkToDeath(deathRecipient);
+                    ((RemoteEventListener_Proxy) listener).unlinkToDeath(deathRecipient);
                 }
+                ((RemoteEventListener_Proxy) listener).destroyProxy();
             }
             this.listener = null;
             this.deathRecipient = null;
@@ -343,7 +360,7 @@ public class RemoteEventController<T> {
         @Override
         public void subscribe(final RemoteEventListener listener) {
             if (DEBUG) {
-                Log.v(TAG, "onSubscribe " + completed + " " + lastEvent +" Closed " + closed);
+                Log.v(TAG, "onSubscribe " + completed + " " + lastEvent + " Closed " + closed);
             }
             if (closed) {
                 return;
@@ -388,7 +405,7 @@ public class RemoteEventController<T> {
                 }
                 RemoteEventController.this.onUnSubscribed();
                 if (listener instanceof RemoteEventListener_Proxy) {
-                    ((RemoteEventListener_Proxy) listener).unLinkToDeath(deathRecipient);
+                    ((RemoteEventListener_Proxy) listener).unlinkToDeath(deathRecipient);
                 }
                 listener = null;
                 deathRecipient = null;

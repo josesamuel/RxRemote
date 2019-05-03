@@ -23,6 +23,9 @@ android {
 
 dependencies {
   implementation deps.rx
+  compileOnly 'com.josesamuel:remoter-annotations:1.2.0'
+  compileOnly 'com.josesamuel:parceler-api:1.0.0'
+  annotationProcessor 'com.josesamuel:remoter:1.2.0'
 }
 
 

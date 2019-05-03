@@ -33,6 +33,7 @@ public class SampleService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        Log.v(TAG, "Service Bind");
         return new ISampleService_Stub(serviceImpl);
     }
 }

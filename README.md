@@ -49,8 +49,8 @@ simply return a RemoteObservable wrapping your source Observable. Any events gen
  			
 @Override
 public RemoteObservable<String> getRemoteObservable() {
-	//wrap the source Observable	
-	return new RemoteObservable<>(observable);
+	//wrap your observable with a RemoteObservable to return across Binder
+	return new RemoteObservable<>(Observable.from(new String[]{"Hello", "World"}););
 }	
 
 ```
@@ -80,8 +80,7 @@ Gradle dependency
 
 ```groovy
 dependencies {
-	//Replace "implementation" with "compile" on pre AndroidStudio 3
-    implementation 'com.josesamuel:rxremote:1.0.15'
+    implementation 'com.josesamuel:rxremote:1.2.0'
 }
 ```
 

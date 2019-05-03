@@ -35,4 +35,6 @@ public interface ISampleService {
 
     RemoteObservable<Integer> getIntObservableForClose();
 
+    RemoteObservable<Integer> testForRemoteClose();
+
 }

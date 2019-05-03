@@ -59,6 +59,8 @@ public class RemoteObservable<T> implements Parcelable {
     private RemoteEventController<T> remoteEventController;
     private boolean closed;
 
+
+
     //*************************************************************
 
     /**
@@ -79,6 +81,16 @@ public class RemoteObservable<T> implements Parcelable {
     public RemoteObservable(Observable<T> sourceObservable) {
         this.remoteEventController = new RemoteEventController<>(sourceObservable);
         this.remoteEventBinder = new RemoteEventManager_Stub(remoteEventController.getRemoteEventManager());
+    }
+
+    /**
+     * Set the listener to get notified when remote end closes connection
+     */
+    public RemoteObservable<T> setRemoteObservableListener(RemoteObservableListener remoteObservableListener) {
+        if (remoteEventController != null) {
+            remoteEventController.setRemoteObservableListener(remoteObservableListener);
+        }
+        return this;
     }
 
     /**
@@ -179,16 +191,10 @@ public class RemoteObservable<T> implements Parcelable {
                                 public void run() {
                                     try {
                                         Log.i(TAG, "Attempting reconnection for RemoteObservable");
-                                        remoteEventManager.unLinkToDeath(deathRecipient);
+                                        remoteEventManager.unlinkToDeath(deathRecipient);
                                         RemoteObservable<T> reconectedObservable = reconnecter.call();
                                         if (reconectedObservable != null) {
-                                            remoteEventBinder = reconectedObservable.remoteEventBinder;
-                                            remoteEventManager.resetBinder(remoteEventBinder);
-                                            remoteEventManager.linkToDeath(deathRecipient);
-                                            //resubsribe if there are any subscribers
-                                            if (remoteEventListener != null) {
-                                                onFirstSubscribe();
-                                            }
+                                            reconectedObservable.getObservable().subscribe(remoteSubject);
                                         }
                                     } catch (Exception ex) {
                                         Log.w(TAG, "Unable to reconnect", ex);
@@ -206,9 +212,10 @@ public class RemoteObservable<T> implements Parcelable {
                 public void close() {
                     super.close();
                     reconnecter = null;
-                    remoteEventManager.unLinkToDeath(deathRecipient);
+                    remoteEventManager.unlinkToDeath(deathRecipient);
                     remoteEventManager.unsubscribe();
                     remoteEventManager.close();
+                    remoteEventManager.destroyProxy();
                     remoteEventListener = null;
                 }
 

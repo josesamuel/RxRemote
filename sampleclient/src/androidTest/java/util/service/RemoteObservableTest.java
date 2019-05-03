@@ -1,6 +1,7 @@
 package util.service;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.remote.RemoteObservable;
+import io.reactivex.remote.RemoteObservableListener;
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action0;
@@ -46,11 +48,13 @@ public class RemoteObservableTest {
     private volatile boolean expectingClose;
     private volatile boolean expectingOnError;
     private int eventsReceived;
+    private Subscription subscription;
 
 
     ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            Log.i(TAG, "OnService Connected ");
             sampleService = new ISampleService_Proxy(iBinder);
             synchronized (objectLock) {
                 objectLock.notify();
@@ -76,11 +80,12 @@ public class RemoteObservableTest {
     @Before
     public void setup() throws InterruptedException {
         synchronized (objectLock) {
+            Log.i(TAG, "Connecting to service ");
             Intent remoterServiceIntent = new Intent(INTENT_AIDL_SERVICE);
             remoterServiceIntent.setClassName("util.remoter.aidlservice", INTENT_AIDL_SERVICE);
 
-            mActivityRule.getActivity().startService(remoterServiceIntent);
-            mActivityRule.getActivity().bindService(remoterServiceIntent, serviceConnection, 0);
+            //mActivityRule.getActivity().startService(remoterServiceIntent);
+            mActivityRule.getActivity().bindService(remoterServiceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
 
             objectLock.wait();
             Log.i(TAG, "Service connected");
@@ -618,6 +623,57 @@ public class RemoteObservableTest {
                 Assert.fail("Unexpected observable coplete");
             }
         });
+
+        Log.v(TAG, "Sleeping");
+        Thread.sleep(5000);
+        Log.v(TAG, "Out of sleep");
+        Assert.assertEquals(1, eventsReceived);
+    }
+
+
+    @Test
+    public void testClose2() throws Exception {
+        Log.v(TAG, "Test client unsubscribe ");
+        final RemoteObservable<Integer> remoteObservable = sampleService.testForRemoteClose();
+        remoteObservable.setDebug(true);
+        Observable<Integer> observable = remoteObservable.getObservable();
+        remoteObservable.setRemoteObservableListener(new RemoteObservableListener(){
+            @Override
+            public void onSubscribed() {
+                Log.v(TAG, "client OnSubscribed");
+            }
+
+            @Override
+            public void onUnsubscribe() {
+                Log.v(TAG, "client onUnsubscribe");
+            }
+
+            @Override
+            public void onClosed() {
+                Log.v(TAG, "client onClosed");
+            }
+        });
+
+        eventsReceived = 0;
+        subscription = observable.subscribe(data -> {
+            eventsReceived++;
+            Log.v(TAG, "Int close data " + data );
+            Assert.assertNotNull(data);
+            Assert.assertEquals(1, data.intValue());
+            Log.v(TAG, "unsubscribing");
+            subscription.unsubscribe();
+        }, throwable -> {
+            Log.e(TAG, "Exception :", throwable);
+            Assert.fail("Unexpected observable exception");
+        }, () -> {
+            Log.v(TAG, "Int close data onComplete");
+            Assert.fail("Unexpected observable coplete");
+        });
+
+        Log.v(TAG, "Sleeping for 1 sec");
+        Thread.sleep(1200);
+        Log.v(TAG, "Closing client");
+        remoteObservable.close();
 
         Log.v(TAG, "Sleeping");
         Thread.sleep(5000);
