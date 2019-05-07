@@ -8,6 +8,7 @@ import java.util.List;
 import io.reactivex.remote.RemoteEventController;
 import io.reactivex.remote.RemoteObservable;
 import io.reactivex.remote.RemoteObservableListener;
+import io.reactivex.remote.RemoteObservables;
 import rx.Observable;
 import rx.functions.Action0;
 import rx.subjects.PublishSubject;
@@ -314,6 +315,22 @@ public class SampleServiceImpl implements ISampleService {
         remoteObservable.setDebug(true);
         return remoteObservable;
     }
+
+    @Override
+    public RemoteObservable<Integer> testCreateRemoteObservers() {
+        return RemoteObservables.<Integer>of("testReoteObservers").newObservable();
+    }
+
+    @Override
+    public void testSendRemoteObservers(int data){
+        RemoteObservables.<Integer>of("testReoteObservers").onNext(data);
+    }
+
+    @Override
+    public void testSendCompletedRemoteObservers(){
+        RemoteObservables.<Integer>of("testReoteObservers").onCompleted();
+    }
+
 
     @Override
     public RemoteObservable<Integer> getIntObservableCreatedFromRxObservable() {

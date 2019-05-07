@@ -28,12 +28,16 @@ import rx.Observable;
  * aidl or <a href=\"https://bit.ly/Remoter\">Remoter</a> interfaces
  * and then get an {@link Observable} from this class at the client side.
  * <p>
- * {@link RemoteObservable} can be created from either an {@link Observable} using {@link #RemoteObservable(Observable)}
+ * {@link RemoteObservable} can be created using the factory class {@link RemoteObservables}
+ * <p>
+ * or manually from either an {@link Observable} using {@link #RemoteObservable(Observable)}
  * or {@link RemoteEventController} using {@link #RemoteObservable(RemoteEventController)}
  *
  * @param <T> Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
  *            {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
  *            or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
+ *
+ * @see RemoteObservables
  * @author js
  */
 public class RemoteObservable<T> implements Parcelable {

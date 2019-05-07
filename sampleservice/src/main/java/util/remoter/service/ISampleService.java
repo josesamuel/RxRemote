@@ -37,4 +37,8 @@ public interface ISampleService {
 
     RemoteObservable<Integer> testForRemoteClose();
 
+    RemoteObservable<Integer> testCreateRemoteObservers();
+    void testSendRemoteObservers(int data);
+    void testSendCompletedRemoteObservers();
+
 }

@@ -347,8 +347,8 @@ public class RemoteObservableTest {
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
                 Assert.assertEquals(expected, data.intValue());
-                expected ++;
-                if(expected == 4) {
+                expected++;
+                if (expected == 4) {
                     expectingClose = true;
                 }
             }
@@ -527,7 +527,7 @@ public class RemoteObservableTest {
             public void call(List<String> data) {
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
-                Log.v(TAG, "List<String> data " + data );
+                Log.v(TAG, "List<String> data " + data);
                 Assert.assertNotNull(data);
                 Assert.assertEquals(2, data.size());
                 for (int i = 1; i <= 2; i++) {
@@ -565,7 +565,7 @@ public class RemoteObservableTest {
             public void call(List<CustomData> data) {
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
-                Log.v(TAG, "List<CustomData> data " + data );
+                Log.v(TAG, "List<CustomData> data " + data);
                 Assert.assertNotNull(data);
                 Assert.assertEquals(2, data.size());
                 for (int i = 1; i <= 2; i++) {
@@ -604,7 +604,7 @@ public class RemoteObservableTest {
             public void call(Integer data) {
                 Assert.assertFalse(expectingClose);
                 eventsReceived++;
-                Log.v(TAG, "Int close data " + data );
+                Log.v(TAG, "Int close data " + data);
                 Assert.assertNotNull(data);
                 Assert.assertEquals(1, data.intValue());
                 expectingClose = true;
@@ -637,7 +637,7 @@ public class RemoteObservableTest {
         final RemoteObservable<Integer> remoteObservable = sampleService.testForRemoteClose();
         remoteObservable.setDebug(true);
         Observable<Integer> observable = remoteObservable.getObservable();
-        remoteObservable.setRemoteObservableListener(new RemoteObservableListener(){
+        remoteObservable.setRemoteObservableListener(new RemoteObservableListener() {
             @Override
             public void onSubscribed() {
                 Log.v(TAG, "client OnSubscribed");
@@ -657,7 +657,7 @@ public class RemoteObservableTest {
         eventsReceived = 0;
         subscription = observable.subscribe(data -> {
             eventsReceived++;
-            Log.v(TAG, "Int close data " + data );
+            Log.v(TAG, "Int close data " + data);
             Assert.assertNotNull(data);
             Assert.assertEquals(1, data.intValue());
             Log.v(TAG, "unsubscribing");
@@ -679,6 +679,77 @@ public class RemoteObservableTest {
         Thread.sleep(5000);
         Log.v(TAG, "Out of sleep");
         Assert.assertEquals(1, eventsReceived);
+    }
+
+    int expectedData;
+    boolean expectingData;
+
+    @Test
+    public void testRemoteObserversFactory() throws Exception {
+        Log.v(TAG, "Test RemoteObserversFactory");
+        final RemoteObservable<Integer> remoteObservable1 = sampleService.testCreateRemoteObservers();
+        final RemoteObservable<Integer> remoteObservable2 = sampleService.testCreateRemoteObservers();
+
+        Observable<Integer> observable1 = remoteObservable1.getObservable();
+        Observable<Integer> observable2 = remoteObservable2.getObservable();
+
+
+        observable1.subscribe(data -> {
+            if (expectingData) {
+                eventsReceived++;
+                Log.v(TAG, "Int  data " + data);
+                Assert.assertNotNull(data);
+                Assert.assertEquals(expectedData, data.intValue());
+            }
+        }, throwable -> {
+            Log.e(TAG, "Exception :", throwable);
+            Assert.fail("Unexpected observable exception");
+        }, () -> {
+            Log.v(TAG, "Observable complete");
+            Assert.assertTrue("Complete ", expectingClose);
+            eventsReceived++;
+        });
+
+        observable2.subscribe(data -> {
+            if (expectingData) {
+                eventsReceived++;
+                Log.v(TAG, "Int  data " + data);
+                Assert.assertNotNull(data);
+                Assert.assertEquals(expectedData, data.intValue());
+            }
+        }, throwable -> {
+            Log.e(TAG, "Exception :", throwable);
+            Assert.fail("Unexpected observable exception");
+        }, () -> {
+            Log.v(TAG, "Observable complete");
+            Assert.assertTrue("Complete ", expectingClose);
+            eventsReceived++;
+        });
+
+        Thread.sleep(200);
+
+        eventsReceived = 0;
+        expectingData = true;
+        expectedData = 10;
+        sampleService.testSendRemoteObservers(expectedData);
+
+        Thread.sleep(100);
+        Assert.assertEquals(2, eventsReceived);
+
+        expectedData = 20;
+        sampleService.testSendRemoteObservers(expectedData);
+
+        Thread.sleep(100);
+        Assert.assertEquals(4, eventsReceived);
+
+        expectingClose = true;
+        sampleService.testSendCompletedRemoteObservers();
+        Thread.sleep(100);
+        Assert.assertEquals(6, eventsReceived);
+
+        remoteObservable1.close();
+        remoteObservable2.close();
+
     }
 }
 

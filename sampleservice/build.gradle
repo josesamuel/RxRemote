@@ -28,8 +28,8 @@ android {
 dependencies {
     androidTestImplementation deps.junit
     androidTestImplementation deps.support.test.rules
-    //implementation project(path: ':rxremote')
-    implementation 'com.josesamuel:rxremote:1.2.0'
+    implementation project(path: ':rxremote')
+    //implementation 'com.josesamuel:rxremote:1.2.0'
     implementation 'io.reactivex:rxjava:1.2.3'
     implementation 'org.parceler:parceler-api:1.1.9'
     annotationProcessor 'org.parceler:parceler:1.1.9'
