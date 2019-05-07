@@ -17,27 +17,25 @@ public interface ISampleService {
 
 **At server side**
 
-* Return a RemoteObservable wrapping your RemoteEventController
-* Use the above event controller to send data, or signal end of data stream
+* Use Factory class RemoteObservables to create/notify
 
 ```java
-//Controller to send events to cient
-RemoteEventController<String> eventController = new RemoteEventController<>();
- 			
+
 @Override
-public RemoteObservable<String> getRemoteObservable() {
-	//wrap the controller and return  	
-	return new RemoteObservable<>(eventController);
+public RemoteObservable<Integer> getDownloadObservable() {
+	//Use the factory tied to "Download"	
+	return RemoteObservables.<Integer>of("Download").newObservable();
 }	
    ...
    	...
         	
 //send the events
-eventController.sendEvent("Hello");
-eventController.sendEvent("World");
+RemoteObservables.<Integer>of("Download").onNext(50);
+RemoteObservables.<Integer>of("Download").onNext(100);
+
 ...
 //complete
-eventController.sendCompleted();
+RemoteObservables.<Integer>of("Download").onCompleted();
 
 ```
 
@@ -80,7 +78,7 @@ Gradle dependency
 
 ```groovy
 dependencies {
-    implementation 'com.josesamuel:rxremote:1.2.0'
+    implementation 'com.josesamuel:rxremote:1.2.1'
 }
 ```
 
