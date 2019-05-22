@@ -368,7 +368,6 @@ public class RemoteEventController<T> {
             synchronized (LOCK) {
                 this.listener = listener;
                 if (!completed) {
-                    RemoteEventController.this.onSubscribed();
                     if (listener instanceof RemoteEventListener_Proxy) {
                         deathRecipient = new IBinder.DeathRecipient() {
                             @Override
@@ -389,6 +388,8 @@ public class RemoteEventController<T> {
                     sendOnError(lastException);
                 } else if (completed) {
                     sendOnCompleted();
+                } else {
+                    RemoteEventController.this.onSubscribed();
                 }
             }
         }
