@@ -67,6 +67,25 @@ Observable<String> observable = sampleService.getRemoteObservable().getObservabl
 
 ```
 
+OR
+
+directly access the data from RemoteObservable, and listen for updates by registering a listener
+
+```java
+ISampleService sampleService = new ISampleService_Proxy( binder ); //See remoter
+RemoteObservable<String> remoteData = sampleService.getRemoteObservable();
+
+//get last data
+String data = remoteData.getData();
+
+//listen for updates
+remoteData.setDataListener(data -> {});
+
+
+```
+
+
+
 That's it! 
 
 
