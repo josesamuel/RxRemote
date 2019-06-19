@@ -35,7 +35,7 @@ import util.remoter.service.ISampleService;
 
 
 /**
- * Tests the {@link RemoteObservable} using its getLocalObservable from a local service
+ * Tests the {@link RemoteObservable} using its getObservable from a local service
  */
 public class LocalObservableTest {
 
@@ -104,7 +104,7 @@ public class LocalObservableTest {
         eventsReceived = 0;
         Assert.assertNotNull(fooObservable);
 
-        Subscription subscription1 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
+        Subscription subscription1 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
             int counter = 0;
 
             @Override
@@ -128,7 +128,7 @@ public class LocalObservableTest {
             }
         });
 
-        Subscription subscription2 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
+        Subscription subscription2 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<FooParcelable>() {
             int counter = 0;
 
             @Override
@@ -174,7 +174,7 @@ public class LocalObservableTest {
         expectingClose = false;
         Assert.assertNotNull(fooObservable);
         eventsReceived = 0;
-        Subscription subscription1 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
+        Subscription subscription1 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
             int counter = 0;
 
             @Override
@@ -211,7 +211,7 @@ public class LocalObservableTest {
 
         Log.v(TAG, "Sub1 created " + subscription1);
 
-        Subscription subscription2 = fooObservable.getLocalObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
+        Subscription subscription2 = fooObservable.getObservable().observeOn(Schedulers.newThread()).subscribe(new Action1<CustomData>() {
             int counter = 0;
 
             @Override
@@ -250,11 +250,11 @@ public class LocalObservableTest {
     @Test
     public void testIntObservable() throws Exception {
         RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservable();
-        Observable<Integer> integerObservable = integerRemoteObservable.getLocalObservable();
+        Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
         intObservableTest(integerObservable);
 
         integerRemoteObservable = sampleService.getIntObservable();
-        integerObservable = integerRemoteObservable.getLocalObservable();
+        integerObservable = integerRemoteObservable.getObservable();
         intObservableTest(integerObservable);
     }
 
@@ -321,6 +321,19 @@ public class LocalObservableTest {
         intObservableFromObservableTest(sampleService.getIntObservableCreatedFromRxObservable().getObservable());
     }
 
+    @Test
+    public void testIntObservableLastData() throws Exception {
+        RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservableForClose();
+        integerRemoteObservable.setDataListener(data -> {
+            Assert.assertEquals(data, integerRemoteObservable.getData());
+        });
+
+        Assert.assertEquals(1, integerRemoteObservable.getData().intValue());
+        Thread.sleep(2100);
+        Assert.assertEquals(2, integerRemoteObservable.getData().intValue());
+    }
+
+
     private void intObservableFromObservableTest(Observable<Integer> observable) throws Exception {
         expectingClose = false;
         eventsReceived = 0;
@@ -363,7 +376,7 @@ public class LocalObservableTest {
     public void intObservableThatThrowsExceptionTest() throws Exception {
 
         RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservableThatThrowsException();
-        Observable<Integer> integerObservable = integerRemoteObservable.getLocalObservable();
+        Observable<Integer> integerObservable = integerRemoteObservable.getObservable();
 
         expectingClose = false;
         eventsReceived = 0;
@@ -400,7 +413,7 @@ public class LocalObservableTest {
 
         eventsReceived = 0;
 
-        Subscription subscription2 = integerRemoteObservable.getLocalObservable().subscribe(new Action1<Integer>() {
+        Subscription subscription2 = integerRemoteObservable.getObservable().subscribe(new Action1<Integer>() {
             int expected = 1;
 
             @Override
@@ -436,7 +449,7 @@ public class LocalObservableTest {
     @Test
     public void testRemoterObservable() throws Exception {
         RemoteObservable<IEcho> remoteObservable = sampleService.getRemoterObservable();
-        Observable<IEcho> observable = remoteObservable.getLocalObservable();
+        Observable<IEcho> observable = remoteObservable.getObservable();
 
         expectingClose = false;
         eventsReceived = 0;
@@ -471,7 +484,7 @@ public class LocalObservableTest {
     @Test
     public void testGenericRemoterObservable() throws Exception {
         RemoteObservable<IGen<String>> remoteObservable = sampleService.getGenericRemoterObservable();
-        Observable<IGen<String>> observable = remoteObservable.getLocalObservable();
+        Observable<IGen<String>> observable = remoteObservable.getObservable();
 
         expectingClose = false;
         eventsReceived = 0;
@@ -505,7 +518,7 @@ public class LocalObservableTest {
     @Test
     public void testListOfStrings() throws Exception {
         RemoteObservable<List<String>> remoteObservable = sampleService.getRemoterObservableOfListOfStrings();
-        Observable<List<String>> observable = remoteObservable.getLocalObservable();
+        Observable<List<String>> observable = remoteObservable.getObservable();
 
         expectingClose = false;
         eventsReceived = 0;
@@ -542,7 +555,7 @@ public class LocalObservableTest {
     @Test
     public void testListOfParceler() throws Exception {
         RemoteObservable<List<CustomData>> remoteObservable = sampleService.getRemoterObservableOfListOfParceler();
-        Observable<List<CustomData>> observable = remoteObservable.getLocalObservable();
+        Observable<List<CustomData>> observable = remoteObservable.getObservable();
 
         expectingClose = false;
         eventsReceived = 0;

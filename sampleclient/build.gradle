@@ -29,8 +29,8 @@ android {
 dependencies {
     androidTestImplementation deps.junit
     androidTestImplementation deps.support.test.rules
-    //implementation project(path: ':rxremote')
-    implementation 'com.josesamuel:rxremote:1.2.0'
+    implementation project(path: ':rxremote')
+    //implementation 'com.josesamuel:rxremote:1.2.0'
 
     implementation 'io.reactivex:rxjava:1.2.3'
 

@@ -1,5 +1,10 @@
 Change Log
 ==========
+Version 2.0.0 *(2019-6-18)*
+----------------------------
+* Adding getData directly to RemoteObservable 
+* Removed getLocalObsevable, instead getObservable returns the correct one (Breaking change: Simply use getObservable instead of getLocalObservable)
+
 Version 1.0.14 *(2018-8-16)*
 ----------------------------
 Adding close

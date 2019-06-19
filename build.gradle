@@ -6,7 +6,7 @@ buildscript {
             'compileSdk': 26,
             'buildTools': '27.0.3',
             'release'   : '${VERSION_NAME}',
-            'androidPlugin': '3.4.0',
+            'androidPlugin': '3.4.1',
             'supportLibrary': '26.0.1'
     ]
 

@@ -98,12 +98,6 @@ public class RemoteObservableTest {
     }
 
 
-    @Test(expected = IllegalStateException.class)
-    public void testLocalbservable() throws Exception {
-        final RemoteObservable<FooParcelable> fooObservable = sampleService.getFooObservable();
-        fooObservable.getLocalObservable();
-    }
-
     @Test
     public void testParcelableObservable() throws Exception {
         testParcelable();
@@ -278,7 +272,21 @@ public class RemoteObservableTest {
         integerRemoteObservable = sampleService.getIntObservable();
         integerObservable = integerRemoteObservable.getObservable();
         intObservableTest(integerObservable);
+        integerRemoteObservable.close();
     }
+
+    @Test
+    public void testIntObservableLastData() throws Exception {
+        RemoteObservable<Integer> integerRemoteObservable = sampleService.getIntObservableForClose();
+        integerRemoteObservable.setDataListener(data -> {
+            Assert.assertEquals(data, integerRemoteObservable.getData());
+        });
+
+        Assert.assertEquals(1, integerRemoteObservable.getData().intValue());
+        Thread.sleep(2100);
+        Assert.assertEquals(2, integerRemoteObservable.getData().intValue());
+    }
+
 
     public void intObservableTest(Observable<Integer> observable) throws Exception {
         expectingClose = false;

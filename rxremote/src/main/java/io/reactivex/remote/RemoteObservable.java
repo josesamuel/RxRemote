@@ -20,6 +20,8 @@ import io.reactivex.remote.internal.RemoteEventManager_Proxy;
 import io.reactivex.remote.internal.RemoteEventManager_Stub;
 import io.reactivex.remote.internal.RemoteSubject;
 import rx.Observable;
+import rx.Subscription;
+import rx.functions.Action1;
 
 /**
  * {@link Observable} across android remote services.
@@ -27,6 +29,10 @@ import rx.Observable;
  * This is a {@link Parcelable} which can be passed through remote service
  * aidl or <a href=\"https://bit.ly/Remoter\">Remoter</a> interfaces
  * and then get an {@link Observable} from this class at the client side.
+ * <p>
+ * At the client side either use {@link #getObservable()} to get an {@link Observable},
+ * or use {@link #getData(boolean)} to directly get the last data and register for updates
+ * using {@link #setDataListener(RemoteDataListener)}
  * <p>
  * {@link RemoteObservable} can be created using the factory class {@link RemoteObservables}
  * <p>
@@ -36,9 +42,8 @@ import rx.Observable;
  * @param <T> Supported types are {@link String}, {@link Byte}, {@link Short}, {@link Integer}, {@link Long},
  *            {@link Float}, {@link Double}, {@link Boolean}, {@link Parcelable},
  *            or any class annotated with <a href=\"https://github.com/johncarl81/parceler\">@Parcel</a>
- *
- * @see RemoteObservables
  * @author js
+ * @see RemoteObservables
  */
 public class RemoteObservable<T> implements Parcelable {
 
@@ -61,8 +66,12 @@ public class RemoteObservable<T> implements Parcelable {
     private RemoteSubject<T> localSubject;
     private Callable<RemoteObservable<T>> reconnecter;
     private RemoteEventController<T> remoteEventController;
+    private T lastData;
+    private boolean dataReceived;
+    private final Object dataLock = new Object();
+    private Subscription internalSubscription;
+    private RemoteDataListener<T> dataListener;
     private boolean closed;
-
 
 
     //*************************************************************
@@ -88,7 +97,8 @@ public class RemoteObservable<T> implements Parcelable {
     }
 
     /**
-     * Set the listener to get notified when remote end closes connection
+     * Set the listener to get notified when remote end closes connection.
+     * Use in the service side to get notified about client connections
      */
     public RemoteObservable<T> setRemoteObservableListener(RemoteObservableListener remoteObservableListener) {
         if (remoteEventController != null) {
@@ -121,6 +131,9 @@ public class RemoteObservable<T> implements Parcelable {
         if (closed) {
             throw new IllegalStateException("Already closed");
         }
+        if (remoteEventController != null) {
+            return getLocalObservable();
+        }
         return getRemoteSubject().asObservable();
     }
 
@@ -129,7 +142,7 @@ public class RemoteObservable<T> implements Parcelable {
      *
      * @throws IllegalStateException if caled on a {@link RemoteObservable} that is not from a local service
      */
-    public Observable<T> getLocalObservable() {
+    private Observable<T> getLocalObservable() {
         if (closed) {
             throw new IllegalStateException("Already closed");
         }
@@ -137,11 +150,67 @@ public class RemoteObservable<T> implements Parcelable {
     }
 
     /**
+     * Returns the last data received, blocking until one is available.
+     *
+     * @see #getData(boolean)
+     */
+    public T getData() {
+        return getData(true);
+    }
+
+    /**
+     * Returns the last data received, optionally blocking till the data is received
+     *
+     * @param wait If true, this call will block until a data is available
+     */
+    public T getData(boolean wait) {
+        synchronized (dataLock) {
+            if (!dataReceived && wait) {
+                registerInternalObserver();
+                try {
+                    dataLock.wait();
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+        return lastData;
+    }
+
+    /**
+     * Sets a listener to get notified of data.
+     * This is another way to get the data other than the {@link #getObservable()}
+     *
+     * @param dataListener {@link RemoteDataListener} to get notified
+     */
+    public void setDataListener(RemoteDataListener<T> dataListener) {
+        this.dataListener = dataListener;
+    }
+
+    private void registerInternalObserver() {
+        if (internalSubscription == null) {
+            internalSubscription = getObservable().subscribe(new Action1<T>() {
+                @Override
+                public void call(T t) {
+                }
+            }, new Action1<Throwable>() {
+                @Override
+                public void call(Throwable throwable) {
+                }
+            });
+        }
+    }
+
+
+    /**
      * Close this {@link RemoteObservable}
      * No further events will be delivered
      */
     public void close() {
         if (!closed) {
+            if (internalSubscription != null) {
+                internalSubscription.unsubscribe();
+                internalSubscription = null;
+            }
             if (remoteSubject != null) {
                 remoteSubject.close();
             }
@@ -153,6 +222,8 @@ public class RemoteObservable<T> implements Parcelable {
             remoteSubject = null;
             localSubject = null;
             remoteEventController = null;
+            lastData = null;
+            dataReceived = false;
             closed = true;
         }
     }
@@ -244,6 +315,7 @@ public class RemoteObservable<T> implements Parcelable {
                             if (DEBUG) {
                                 Log.v(TAG, "onData " + data);
                             }
+                            onDataReceived(data);
                             remoteSubject.onNext(data);
                         }
 
@@ -309,6 +381,7 @@ public class RemoteObservable<T> implements Parcelable {
                         @SuppressWarnings("unchecked")
                         public void onLocalEvent(Object localData) {
                             T data = (T) localData;
+                            onDataReceived(data);
                             localSubject.onNext(data);
                         }
 
@@ -321,6 +394,7 @@ public class RemoteObservable<T> implements Parcelable {
                             if (DEBUG) {
                                 Log.v(TAG, "onData " + data);
                             }
+                            onDataReceived(data);
                             localSubject.onNext(data);
                         }
 
@@ -369,6 +443,20 @@ public class RemoteObservable<T> implements Parcelable {
             };
         }
         return localSubject;
+    }
+
+    /**
+     * Called when a data is received
+     */
+    private void onDataReceived(T data) {
+        synchronized (dataLock) {
+            lastData = data;
+            dataReceived = true;
+            dataLock.notifyAll();
+        }
+        if (dataListener != null) {
+            dataListener.onData(data);
+        }
     }
 
 
