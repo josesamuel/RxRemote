@@ -9,7 +9,7 @@ import remoter.annotations.Remoter;
 /**
  * @hide Used internally by {@link io.reactivex.remote.RemoteObservable} to receive events
  */
-@Remoter
+//@Remoter
 public interface RemoteEventListener {
 
     /**

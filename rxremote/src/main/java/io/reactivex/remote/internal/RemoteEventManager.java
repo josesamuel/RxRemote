@@ -8,7 +8,7 @@ import remoter.annotations.Remoter;
  *
  * Used internally by service side to call client
  */
-@Remoter
+//@Remoter
 public interface RemoteEventManager {
 
     String REMOTE_DATA_KEY = "RemoteData";
