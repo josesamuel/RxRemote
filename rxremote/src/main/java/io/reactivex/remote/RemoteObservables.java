@@ -12,10 +12,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *   //Example to send RemoteObservables for send events for "Download"
  *
  *   //return to client
- *   RemoteObservable<Integer> remoteObservable = RemoteObservables.<Integer>of("Download").newObservable();
+ *   RemoteObservable{@literal <}Integer{@literal >} remoteObservable = RemoteObservables.{@literal <}Integer{@literal >}of("Download").newObservable();
  *
  *   //notify all clients
- *   RemoteObservables.<Integer>of("Download")
+ *   RemoteObservables.{@literal <}Integer{@literal >}of("Download")
  *       .onNext(50)
  *       .onNext(100)
  *       .onCompleted();
@@ -47,11 +47,24 @@ public final class RemoteObservables<T> {
 
     /**
      * Creates a new {@link RemoteObservable} to return to client
+     * By default this observable will emit every data that is send using {@link #onNext(Object)}
      *
      * @return a new instance of {@link RemoteObservable} to return to client
      */
     public RemoteObservable<T> newObservable() {
+        return newObservable(false);
+    }
+
+    /**
+     * Creates a new {@link RemoteObservable} to return to client.
+     * To send data use {@link #onNext(Object)}
+     *
+     * @param ignoreDuplicates Whether this observable to ignore duplicates send to it
+     * @return a new instance of {@link RemoteObservable} to return to client
+     */
+    public RemoteObservable<T> newObservable(boolean ignoreDuplicates) {
         final RemoteEventController<T> eventController = new RemoteEventController<>();
+        eventController.setIgnoreIfDuplicateOfLast(ignoreDuplicates);
         remoteEventControllers.add(eventController);
         return new RemoteObservable<>(eventController)
                 .setRemoteObservableListener(new RemoteObservableListener() {
@@ -70,7 +83,7 @@ public final class RemoteObservables<T> {
     }
 
     /**
-     * Send the given data to all clients
+     * Send the given data to all clients that created using {@link #newObservable()}
      *
      * @param data data to send
      */

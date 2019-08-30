@@ -1,3 +1,5 @@
+import java.util.function.Predicate
+
 /*
  * Copyright 2013 Chris Banes
  *
@@ -138,6 +140,7 @@ afterEvaluate { project ->
         task androidJavadocs(type: Javadoc) {
             source = android.sourceSets.main.java.source
             classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+            exclude("**/internal/**")
         }
 
         task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
