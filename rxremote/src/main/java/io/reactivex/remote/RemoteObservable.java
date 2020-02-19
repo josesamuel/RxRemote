@@ -168,7 +168,9 @@ public class RemoteObservable<T> implements Parcelable {
             if (!dataReceived && wait) {
                 registerInternalObserver();
                 try {
-                    dataLock.wait();
+                    if (!dataReceived) {
+                        dataLock.wait();
+                    }
                 } catch (InterruptedException ignored) {
                 }
             }

@@ -406,7 +406,7 @@ public class RemoteObservableTest {
         }, new Action1<Throwable>() {
             @Override
             public void call(Throwable throwable) {
-                Assert.assertTrue(expectingClose);
+                Assert.assertFalse(expectingClose);
                 expectingClose = false;
             }
         }, new Action0() {
@@ -434,7 +434,7 @@ public class RemoteObservableTest {
         }, new Action1<Throwable>() {
             @Override
             public void call(Throwable throwable) {
-                Assert.assertTrue(expectingClose);
+                Assert.assertFalse(expectingClose);
                 expectingClose = false;
             }
         }, new Action0() {

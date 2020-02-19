@@ -333,6 +333,43 @@ public class LocalObservableTest {
         Assert.assertEquals(2, integerRemoteObservable.getData().intValue());
     }
 
+    @Test
+    public void testIntObservablFromRxObsevables() throws Exception {
+        RemoteObservable<Integer> integerRemoteObservable = sampleService.testCreateRemoteObservers();
+        final Integer[] expectedData = new Integer[1];
+        expectedData[0] = 1;
+        final Boolean[] expectingData = new Boolean[1];
+        expectingData[0] = true;
+
+        sampleService.testSendRemoteObservers(expectedData[0] );
+        Assert.assertEquals(expectedData[0] , integerRemoteObservable.getData());
+        Subscription subscription = integerRemoteObservable.getObservable().subscribe(new Action1<Integer>() {
+            @Override
+            public void call(Integer integer) {
+                Log.v(TAG, "Got int callback "+ integer);
+                Assert.assertTrue(expectingData[0]);
+                Assert.assertEquals(expectedData[0] , integer);
+            }
+        });
+
+        RemoteObservable<Integer>  integerRemoteObservable2 = sampleService.testCreateRemoteObservers();
+        Assert.assertEquals(expectedData[0] , integerRemoteObservable2.getData());
+
+
+        expectedData[0] = 2;
+        sampleService.testSendRemoteObservers(expectedData[0] );
+        Assert.assertEquals(expectedData[0] , integerRemoteObservable2.getData());
+
+
+        subscription.unsubscribe();
+        expectingData[0] = false;
+
+        expectedData[0] = 3;
+        sampleService.testSendRemoteObservers(expectedData[0] );
+        Assert.assertEquals(expectedData[0] , integerRemoteObservable2.getData());
+
+    }
+
 
     private void intObservableFromObservableTest(Observable<Integer> observable) throws Exception {
         expectingClose = false;
@@ -370,6 +407,9 @@ public class LocalObservableTest {
         Assert.assertTrue(expectingClose);
         subscription1.unsubscribe();
     }
+
+
+
 
 
     @Test
