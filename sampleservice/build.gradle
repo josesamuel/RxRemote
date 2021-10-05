@@ -34,7 +34,7 @@ dependencies {
     implementation 'org.parceler:parceler-api:1.1.9'
     annotationProcessor 'org.parceler:parceler:1.1.9'
 
-    implementation 'com.josesamuel:remoter-annotations:1.2.0'
-    annotationProcessor 'com.josesamuel:remoter:1.2.0'
+    implementation 'com.josesamuel:remoter-annotations:2.0.3'
+    annotationProcessor 'com.josesamuel:remoter:2.0.3'
 
 }

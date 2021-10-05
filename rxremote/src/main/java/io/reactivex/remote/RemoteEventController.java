@@ -40,7 +40,7 @@ public class RemoteEventController<T> {
     private T lastEvent;
     private Exception lastException;
     private RemoteDataType dataType = RemoteDataType.UnKnown;
-    private Object LOCK = new Object();
+    private final Object LOCK = new Object();
     private RemoteEventHandler remoteEventHandler = new RemoteEventHandler();
     private Class lastDataTypeClass;
     private RemoteDataType lastDataType;
@@ -81,9 +81,8 @@ public class RemoteEventController<T> {
      * @param data The data that needs to be send
      */
     public final void sendEvent(T data) {
-        if (!completed) {
-            synchronized (LOCK) {
-
+        synchronized (LOCK) {
+            if (!completed) {
                 if (ignoreIfDuplicateOfLast) {
                     if (data == lastEvent || (data != null && data.equals(lastEvent))) {
                         Log.w(TAG, "Ignoring, as it is same as last data " + data);
@@ -107,8 +106,8 @@ public class RemoteEventController<T> {
      * Generate an onCompleted event at the client observable.
      */
     public final void sendCompleted() {
-        if (!completed) {
-            synchronized (LOCK) {
+        synchronized (LOCK) {
+            if (!completed) {
                 completed = true;
                 remoteEventHandler.sendOnCompleted();
             }
@@ -119,8 +118,8 @@ public class RemoteEventController<T> {
      * Generate an onError event at the client observable.
      */
     public final void sendError(Exception exception) {
-        if (!completed) {
-            synchronized (LOCK) {
+        synchronized (LOCK) {
+            if (!completed) {
                 lastException = exception;
                 completed = true;
                 remoteEventHandler.sendOnError(exception);
@@ -175,11 +174,13 @@ public class RemoteEventController<T> {
      * Perform any cleanup here
      */
     public void onClosed() {
-        onUnSubscribed();
-        completed = true;
-        remoteEventHandler = null;
-        if (remoteObservableListener != null) {
-            remoteObservableListener.onClosed();
+        synchronized (LOCK) {
+            onUnSubscribed();
+            completed = true;
+            remoteEventHandler = null;
+            if (remoteObservableListener != null) {
+                remoteObservableListener.onClosed();
+            }
         }
     }
 
