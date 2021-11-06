@@ -39,6 +39,6 @@ public interface ISampleService {
     RemoteObservable<Integer> testCreateRemoteObservers();
     void testSendRemoteObservers(int data);
     void testSendCompletedRemoteObservers();
-
+    RemoteObservable<Integer> testLeak();
 
 }

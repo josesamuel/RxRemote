@@ -1,5 +1,8 @@
 package util.service;
 
+import static util.remoter.remoterservice.ServiceIntents.INTENT_AIDL_SERVICE;
+import static util.remoter.remoterservice.ServiceIntents.INTENT_REMOTER_TEST_ACTIVITY;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -8,14 +11,17 @@ import android.os.IBinder;
 import android.support.test.rule.ActivityTestRule;
 import android.util.Log;
 
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.reactivex.remote.RemoteObservable;
 import io.reactivex.remote.RemoteObservableListener;
@@ -32,9 +38,6 @@ import util.remoter.service.IEcho;
 import util.remoter.service.IGen;
 import util.remoter.service.ISampleService;
 import util.remoter.service.ISampleService_Proxy;
-
-import static util.remoter.remoterservice.ServiceIntents.INTENT_AIDL_SERVICE;
-import static util.remoter.remoterservice.ServiceIntents.INTENT_REMOTER_TEST_ACTIVITY;
 
 
 /**
@@ -260,6 +263,35 @@ public class RemoteObservableTest {
         intObservableFromObservableTest(integerObservable);
 
         intObservableFromObservableTest(sampleService.getIntObservableCreatedFromRxObservable().getObservable());
+    }
+
+    List<RemoteObservable<Integer>> remoterList = new ArrayList<>();
+    //@Test
+    public void testReferenceLeak() throws Exception {
+        //Filter in logcat for "of io" to see the reference counts
+        //Confirm it doesn't grow. It might take up to 1000 for GC to kick in
+        for (int i = 0; i < 50000; i++) {
+            RemoteObservable<Integer> integerRemoteObservable = sampleService.testLeak();
+            remoterList.add(integerRemoteObservable);
+            Integer result = integerRemoteObservable.getObservable().toBlocking().first();
+            Log.v(TAG, "Result " + result);
+            //integerRemoteObservable.close();
+            logGlobalReferenceTables();
+            //Thread.sleep(20);
+        }
+    }
+
+    private void logGlobalReferenceTables() {
+        Class c;
+        System.gc();
+        try {
+            c = Class.forName("android.os.Debug");
+            Class[] nullParameterTypes = null;
+            Object[] nullParamObjects = null;
+            Method m = c.getMethod("dumpReferenceTables", nullParameterTypes);
+            Object o = m.invoke(null, nullParamObjects);
+        } catch (Exception e) {
+        }
     }
 
 
@@ -694,70 +726,72 @@ public class RemoteObservableTest {
 
     @Test
     public void testRemoteObserversFactory() throws Exception {
-        Log.v(TAG, "Test RemoteObserversFactory");
-        final RemoteObservable<Integer> remoteObservable1 = sampleService.testCreateRemoteObservers();
-        final RemoteObservable<Integer> remoteObservable2 = sampleService.testCreateRemoteObservers();
+        for(int i=0; i<3; i++) {
+            Log.v(TAG, "Test RemoteObserversFactory");
+            final AtomicInteger eventsReceived = new AtomicInteger(0);
+            final RemoteObservable<Integer> remoteObservable1 = sampleService.testCreateRemoteObservers();
+            final RemoteObservable<Integer> remoteObservable2 = sampleService.testCreateRemoteObservers();
 
-        Observable<Integer> observable1 = remoteObservable1.getObservable();
-        Observable<Integer> observable2 = remoteObservable2.getObservable();
+            Observable<Integer> observable1 = remoteObservable1.getObservable();
+            Observable<Integer> observable2 = remoteObservable2.getObservable();
 
 
-        observable1.subscribe(data -> {
-            if (expectingData) {
-                eventsReceived++;
-                Log.v(TAG, "Int  data " + data);
-                Assert.assertNotNull(data);
-                Assert.assertEquals(expectedData, data.intValue());
-            }
-        }, throwable -> {
-            Log.e(TAG, "Exception :", throwable);
-            Assert.fail("Unexpected observable exception");
-        }, () -> {
-            Log.v(TAG, "Observable complete");
-            Assert.assertTrue("Complete ", expectingClose);
-            eventsReceived++;
-        });
+            observable1.subscribe(data -> {
+                if (expectingData) {
+                    eventsReceived.incrementAndGet();
+                    Log.v(TAG, "Int  data " + data);
+                    Assert.assertNotNull(data);
+                    Assert.assertEquals(expectedData, data.intValue());
+                }
+            }, throwable -> {
+                Log.e(TAG, "Exception :", throwable);
+                Assert.fail("Unexpected observable exception");
+            }, () -> {
+                Log.v(TAG, "Observable complete");
+                Assert.assertTrue("Complete ", expectingClose);
+                eventsReceived.incrementAndGet();
+            });
 
-        observable2.subscribe(data -> {
-            if (expectingData) {
-                eventsReceived++;
-                Log.v(TAG, "Int  data " + data);
-                Assert.assertNotNull(data);
-                Assert.assertEquals(expectedData, data.intValue());
-            }
-        }, throwable -> {
-            Log.e(TAG, "Exception :", throwable);
-            Assert.fail("Unexpected observable exception");
-        }, () -> {
-            Log.v(TAG, "Observable complete");
-            Assert.assertTrue("Complete ", expectingClose);
-            eventsReceived++;
-        });
+            observable2.subscribe(data -> {
+                if (expectingData) {
+                    eventsReceived.incrementAndGet();
+                    Log.v(TAG, "Int  data " + data);
+                    Assert.assertNotNull(data);
+                    Assert.assertEquals(expectedData, data.intValue());
+                }
+            }, throwable -> {
+                Log.e(TAG, "Exception :", throwable);
+                Assert.fail("Unexpected observable exception");
+            }, () -> {
+                Log.v(TAG, "Observable complete");
+                Assert.assertTrue("Complete ", expectingClose);
+                eventsReceived.incrementAndGet();
+            });
 
         Thread.sleep(200);
 
-        eventsReceived = 0;
-        expectingData = true;
-        expectedData = 10;
-        sampleService.testSendRemoteObservers(expectedData);
+            eventsReceived.set(0);
+            expectingData = true;
+            expectedData = 10;
+            sampleService.testSendRemoteObservers(expectedData);
 
-        Thread.sleep(100);
-        Assert.assertEquals(2, eventsReceived);
+            Thread.sleep(100);
+            Assert.assertEquals(2, eventsReceived.get());
 
-        expectedData = 20;
-        sampleService.testSendRemoteObservers(expectedData);
+            expectedData = 20;
+            sampleService.testSendRemoteObservers(expectedData);
 
-        Thread.sleep(100);
-        Assert.assertEquals(4, eventsReceived);
+            Thread.sleep(100);
+            Assert.assertEquals(4, eventsReceived.get());
 
-        expectingClose = true;
-        sampleService.testSendCompletedRemoteObservers();
-        Thread.sleep(100);
-        Assert.assertEquals(6, eventsReceived);
+            expectingClose = true;
+            sampleService.testSendCompletedRemoteObservers();
+            Thread.sleep(100);
+            Assert.assertEquals(6, eventsReceived.get());
 
-        remoteObservable1.close();
-        remoteObservable2.close();
-
+            remoteObservable1.close();
+            remoteObservable2.close();
+        }
     }
 }
 

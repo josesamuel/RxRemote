@@ -207,7 +207,7 @@ public class RemoteObservable<T> implements Parcelable {
      * Close this {@link RemoteObservable}
      * No further events will be delivered
      */
-    public void close() {
+    public synchronized void close() {
         if (!closed) {
             if (internalSubscription != null) {
                 internalSubscription.unsubscribe();
@@ -224,8 +224,6 @@ public class RemoteObservable<T> implements Parcelable {
             remoteSubject = null;
             localSubject = null;
             remoteEventController = null;
-            lastData = null;
-            dataReceived = false;
             closed = true;
         }
     }
@@ -327,11 +325,13 @@ public class RemoteObservable<T> implements Parcelable {
                                 Log.v(TAG, "onCompleted ");
                             }
                             remoteSubject.onCompleted();
+                            RemoteObservable.this.close();
                         }
 
                         @Override
                         public void onError(Exception exception) {
                             remoteSubject.onError(exception);
+                            RemoteObservable.this.close();
                         }
                     };
                     try {

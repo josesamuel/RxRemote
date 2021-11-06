@@ -2,6 +2,7 @@ package util.remoter.aidlservice;
 
 import android.util.Log;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,23 +25,9 @@ public class SampleServiceImpl implements ISampleService {
 
 
     private static final String TAG = "RemoteObservablesrc";
-    RemoteEventController<Integer> intDataEventController = new RemoteEventController<>();
-    RemoteEventController<IEcho> remoterDataEventController = new RemoteEventController<>();
-    RemoteEventController<IGen<String>> genericRemoterDataEventController = new RemoteEventController<>();
 
     SampleServiceImpl() {
         Log.v(TAG, "SampleServiceImpl Create");
-        //to test clients will always receive the last data
-        intDataEventController.sendEvent(7);
-        intDataEventController.sendEvent(9);
-        intDataEventController.sendCompleted();
-
-        remoterDataEventController.sendEvent(new EchoImpl());
-        remoterDataEventController.sendCompleted();
-
-        genericRemoterDataEventController.sendEvent(new GenImpl<String>());
-        genericRemoterDataEventController.sendCompleted();
-
     }
 
     @Override
@@ -139,6 +126,11 @@ public class SampleServiceImpl implements ISampleService {
 
     @Override
     public RemoteObservable<Integer> getIntObservable() {
+        RemoteEventController<Integer> intDataEventController = new RemoteEventController<>();
+        intDataEventController.sendEvent(7);
+        intDataEventController.sendEvent(9);
+        intDataEventController.sendCompleted();
+        intDataEventController.setDebug(true);
         return new RemoteObservable<>(intDataEventController);
     }
 
@@ -190,11 +182,18 @@ public class SampleServiceImpl implements ISampleService {
 
     @Override
     public RemoteObservable<IEcho> getRemoterObservable() {
+        RemoteEventController<IEcho> remoterDataEventController = new RemoteEventController<>();
+        remoterDataEventController.sendEvent(new EchoImpl());
+        remoterDataEventController.sendCompleted();
         return new RemoteObservable<>(remoterDataEventController);
     }
 
     @Override
     public RemoteObservable<IGen<String>> getGenericRemoterObservable() {
+        RemoteEventController<IGen<String>> genericRemoterDataEventController = new RemoteEventController<>();
+        genericRemoterDataEventController.sendEvent(new GenImpl<String>());
+        genericRemoterDataEventController.sendCompleted();
+
         return new RemoteObservable<>(genericRemoterDataEventController);
     }
 
@@ -335,8 +334,6 @@ public class SampleServiceImpl implements ISampleService {
     @Override
     public RemoteObservable<Integer> getIntObservableCreatedFromRxObservable() {
 
-        Observable.from(new String[]{"Hello", "World"});
-
         final PublishSubject<Integer> subject = PublishSubject.create();
 
         return new RemoteObservable<>(subject.asObservable().doOnSubscribe(new Action0() {
@@ -415,6 +412,32 @@ public class SampleServiceImpl implements ISampleService {
         return new RemoteObservable<>(controller);
     }
 
+    int leakTestCounter = 0;
+    @Override
+    public RemoteObservable<Integer> testLeak() {
+        RemoteEventController<Integer> controller = new RemoteEventController<Integer>();
+        controller.setDebug(true);
+        controller.sendEvent(leakTestCounter);
+        leakTestCounter++;
+        controller.sendCompleted();
+        RemoteObservable<Integer> r = new RemoteObservable<>(controller);
+        logGlobalReferenceTables();
+        return r;
+    }
 
+
+    private void logGlobalReferenceTables() {
+        System.gc();
+        System.gc();
+        Class c;
+        try {
+            c = Class.forName("android.os.Debug");
+            Class[] nullParameterTypes = null;
+            Object[] nullParamObjects = null;
+            Method m = c.getMethod("dumpReferenceTables", nullParameterTypes);
+            Object o = m.invoke(null, nullParamObjects);
+        } catch (Exception e) {
+        }
+    }
 
 }

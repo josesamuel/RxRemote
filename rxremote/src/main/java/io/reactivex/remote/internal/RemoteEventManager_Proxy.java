@@ -1,11 +1,13 @@
 package io.reactivex.remote.internal;
 
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.Parcelable.Creator;
 import android.os.RemoteException;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -34,6 +36,8 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
 
     private final int _binderID;
 
+    private final int _pid;
+
     private Map<Object, IBinder> stubMap = new WeakHashMap();
 
     /**
@@ -44,6 +48,7 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
     public RemoteEventManager_Proxy(IBinder binder) {
         this.mRemote = binder;
         this._binderID = __getStubID();
+        this._pid = Binder.getCallingPid();
     }
 
     @Override
@@ -196,6 +201,17 @@ public class RemoteEventManager_Proxy implements RemoteEventManager {
 
     //@Override
     public void destroyProxy() {
+        if (mRemote != null) {
+            try {
+                Method finalizeMethod = mRemote.getClass().getDeclaredMethod("finalize");
+                if (finalizeMethod != null) {
+                    finalizeMethod.setAccessible(true);
+                    finalizeMethod.invoke(mRemote);
+                }
+            } catch (Throwable ex) {
+            }
+        }
+
         this.mRemote = null;
         synchronized (stubMap) {
             for (IBinder binder : stubMap.values()) {
