@@ -346,14 +346,7 @@ public class RemoteEventController<T> {
          */
         @Override
         public void close() {
-            if (listener != null) {
-                if (deathRecipient != null) {
-                    ((RemoteEventListener_Proxy) listener).unlinkToDeath(deathRecipient);
-                }
-                ((RemoteEventListener_Proxy) listener).destroyProxy();
-            }
-            this.listener = null;
-            this.deathRecipient = null;
+            clearProxy();
             this.closed = true;
             onClosed();
         }
@@ -406,11 +399,23 @@ public class RemoteEventController<T> {
                     Log.v(TAG, "on unsubscribe" + lastEvent);
                 }
                 RemoteEventController.this.onUnSubscribed();
-                if (listener instanceof RemoteEventListener_Proxy) {
-                    ((RemoteEventListener_Proxy) listener).unlinkToDeath(deathRecipient);
+                clearProxy();
+            }
+        }
+
+        private void clearProxy() {
+            synchronized (LOCK) {
+                if (listener != null) {
+                    if (DEBUG) {
+                        Log.v(TAG, "clearProxy" + listener);
+                    }
+                    if (listener instanceof RemoteEventListener_Proxy) {
+                        ((RemoteEventListener_Proxy) listener).unlinkToDeath(deathRecipient);
+                    }
+                    ((RemoteEventListener_Proxy) listener).destroyProxy();
+                    listener = null;
+                    deathRecipient = null;
                 }
-                listener = null;
-                deathRecipient = null;
             }
         }
 
@@ -520,12 +525,13 @@ public class RemoteEventController<T> {
 
                 if (this.listener != null) {
                     listener.onCompleted();
-                    this.listener = null;
+                    clearProxy();
                 }
             } catch (Exception ex) {
                 if (!completed) {
                     completed = true;
                     onUnSubscribed();
+                    clearProxy();
                 }
             }
         }
@@ -545,12 +551,13 @@ public class RemoteEventController<T> {
 
                 if (this.listener != null) {
                     listener.onError(exception);
-                    this.listener = null;
+                    clearProxy();
                 }
             } catch (Exception ex) {
                 if (!completed) {
                     completed = true;
                     onUnSubscribed();
+                    clearProxy();
                 }
             }
         }

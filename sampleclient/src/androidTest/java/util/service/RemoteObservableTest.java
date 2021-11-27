@@ -21,6 +21,7 @@ import org.junit.Test;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.reactivex.remote.RemoteObservable;
@@ -266,7 +267,7 @@ public class RemoteObservableTest {
     }
 
     List<RemoteObservable<Integer>> remoterList = new ArrayList<>();
-    //@Test
+    @Test
     public void testReferenceLeak() throws Exception {
         //Filter in logcat for "of io" to see the reference counts
         //Confirm it doesn't grow. It might take up to 1000 for GC to kick in
@@ -276,14 +277,14 @@ public class RemoteObservableTest {
             Integer result = integerRemoteObservable.getObservable().toBlocking().first();
             Log.v(TAG, "Result " + result);
             //integerRemoteObservable.close();
-            logGlobalReferenceTables();
+            //logGlobalReferenceTables();
             //Thread.sleep(20);
         }
     }
 
     private void logGlobalReferenceTables() {
         Class c;
-        System.gc();
+        //System.gc();
         try {
             c = Class.forName("android.os.Debug");
             Class[] nullParameterTypes = null;

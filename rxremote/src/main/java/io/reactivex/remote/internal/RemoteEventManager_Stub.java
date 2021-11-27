@@ -32,6 +32,7 @@ public class RemoteEventManager_Stub extends Binder implements RemoterStub {
     private RemoteEventManager serviceImpl;
 
     private BinderWrapper binderWrapper;
+    private String serviceName = "";
 
     /**
      * Initialize this {@link RemoteEventManager_Stub} with the given {@link RemoteEventManager} implementation
@@ -40,6 +41,7 @@ public class RemoteEventManager_Stub extends Binder implements RemoterStub {
      */
     public RemoteEventManager_Stub(RemoteEventManager serviceImpl) {
         this.serviceImpl = serviceImpl;
+        this.serviceName = serviceImpl.getClass().getName();
         this.binderWrapper = new BinderWrapper(this);
         this.attachInterface(binderWrapper, DESCRIPTOR);
     }
@@ -83,7 +85,7 @@ public class RemoteEventManager_Stub extends Binder implements RemoterStub {
                 reply.writeString(re.getMessage());
                 reply.writeSerializable(re);
             } else {
-                Log.w(serviceImpl.getClass().getName(), "Binder call failed.", re);
+                Log.w(serviceName, "Binder call failed.", re);
             }
             return true;
         }
