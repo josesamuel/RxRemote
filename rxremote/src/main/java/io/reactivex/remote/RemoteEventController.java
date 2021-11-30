@@ -411,8 +411,8 @@ public class RemoteEventController<T> {
                     }
                     if (listener instanceof RemoteEventListener_Proxy) {
                         ((RemoteEventListener_Proxy) listener).unlinkToDeath(deathRecipient);
+                        ((RemoteEventListener_Proxy) listener).destroyProxy();
                     }
-                    ((RemoteEventListener_Proxy) listener).destroyProxy();
                     listener = null;
                     deathRecipient = null;
                 }
